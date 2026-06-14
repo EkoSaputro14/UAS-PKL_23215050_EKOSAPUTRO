@@ -18,6 +18,8 @@ interface SessionSidebarProps {
   onNewChat: () => void;
   isOpen: boolean;
   onToggle: () => void;
+  /** BUG-018: Increment to force refetch — only when new session created */
+  refreshTrigger?: number;
 }
 
 const SHORT_MONTHS = [
@@ -41,21 +43,26 @@ export default function SessionSidebar({
   onNewChat,
   isOpen,
   onToggle,
+  refreshTrigger = 0,
 }: SessionSidebarProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Fetch on mount
   useEffect(() => {
     fetchSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Refetch when a new session is created
+  // BUG-018: Only refetch when refreshTrigger changes (new session created),
+  // NOT when currentSessionId changes (session switch)
   useEffect(() => {
-    if (currentSessionId) {
+    if (refreshTrigger > 0) {
       fetchSessions();
     }
-  }, [currentSessionId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]);
 
   const filteredSessions = useMemo(() => {
     if (!searchQuery.trim()) return sessions;

@@ -25,6 +25,8 @@ interface Message {
     metadata: Record<string, unknown>;
   }>;
   createdAt: string;
+  /** BUG-023: Explicit streaming flag — never rely on content === "" */
+  isStreaming?: boolean;
 }
 
 interface Source {
@@ -49,10 +51,55 @@ export default function ChatWindow() {
   const [highlightedSource, setHighlightedSource] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  /** BUG-001: AbortController ref for cancelling in-flight requests */
+  const abortControllerRef = useRef<AbortController | null>(null);
+  /** BUG-016: Track message count to avoid scrolling on content updates */
+  const prevMessageCountRef = useRef(0);
+  /** BUG-016: Debounce timer for scroll during streaming */
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** BUG-018: Track whether initial mount fetch has completed */
+  const initialFetchDoneRef = useRef(false);
 
+  /** BUG-016: Smart scroll — only on new messages, debounced during streaming */
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
+
+  const debouncedScrollToBottom = useCallback(() => {
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    scrollTimerRef.current = setTimeout(() => {
+      scrollToBottom();
+    }, 150);
+  }, [scrollToBottom]);
+
+  /** BUG-001: Abort any in-flight request */
+  const abortInFlight = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, []);
+
+  // Cleanup abort controller and scroll timer on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    };
+  }, []);
+
+  /** BUG-016: Only scroll when a new message is added, not on content updates */
+  useEffect(() => {
+    const currentCount = messages.length;
+    if (currentCount > prevMessageCountRef.current) {
+      // New message added — scroll immediately
+      scrollToBottom();
+    } else if (currentCount === prevMessageCountRef.current && isLoading) {
+      // Content update during streaming — debounced scroll
+      debouncedScrollToBottom();
+    }
+    prevMessageCountRef.current = currentCount;
+  }, [messages, isLoading, scrollToBottom, debouncedScrollToBottom]);
 
   const resetTextareaHeight = useCallback(() => {
     if (textareaRef.current) {
@@ -74,10 +121,6 @@ export default function ChatWindow() {
     }
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
-
   const handleCitationClick = useCallback((sourceIndex: number) => {
     setHighlightedSource((prev) => (prev === sourceIndex ? null : sourceIndex));
     const el = document.getElementById(`source-preview-${sourceIndex}`);
@@ -91,6 +134,7 @@ export default function ChatWindow() {
     textareaRef.current?.focus();
   }, []);
 
+  /** BUG-001: Regenerate now aborts any in-flight request first */
   const handleRegenerate = useCallback(async () => {
     if (isLoading) return;
 
@@ -106,10 +150,16 @@ export default function ChatWindow() {
 
     const userPrompt = messages[lastUserIdx].content;
 
+    // BUG-001: Cancel any in-flight request
+    abortInFlight();
+
     // Remove the last assistant message
     setMessages((prev) => prev.slice(0, lastAssistantIdx));
     setIsLoading(true);
     setHighlightedSource(null);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     try {
       const response = await fetch("/api/chat", {
@@ -119,6 +169,7 @@ export default function ChatWindow() {
           message: userPrompt,
           sessionId,
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -147,11 +198,12 @@ export default function ChatWindow() {
       let assistantContent = "";
 
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: crypto.randomUUID(),
         role: "assistant",
         content: "",
         sources,
         createdAt: new Date().toISOString(),
+        isStreaming: true, // BUG-023: explicit streaming flag
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -177,22 +229,40 @@ export default function ChatWindow() {
           });
         }
       }
+
+      // Mark streaming as complete
+      setMessages((prev) => {
+        const updated = [...prev];
+        const lastIndex = updated.length - 1;
+        if (updated[lastIndex]?.role === "assistant") {
+          updated[lastIndex] = { ...updated[lastIndex], isStreaming: false };
+        }
+        return updated;
+      });
     } catch (error) {
       console.error("Regenerate error:", error);
+      if (error instanceof Error && error.name === "AbortError") {
+        // BUG-001: Request was cancelled — don't show error toast
+        return;
+      }
       if (
         !(error instanceof Error && error.message === "Gagal membuat ulang jawaban")
       ) {
         toast.error("Terjadi kesalahan. Silakan coba lagi.");
       }
     } finally {
+      abortControllerRef.current = null;
       setIsLoading(false);
     }
-  }, [isLoading, messages, sessionId]);
+  }, [isLoading, messages, sessionId, abortInFlight]);
 
   async function handleSessionSelect(session: {
     id: string;
     title: string | null;
   }) {
+    // BUG-001: Cancel any in-flight request before switching
+    abortInFlight();
+
     setSessionId(session.id);
     setIsLoading(true);
     setHighlightedSource(null);
@@ -241,6 +311,9 @@ export default function ChatWindow() {
       return;
     }
 
+    // BUG-001: Cancel any in-flight request before starting new one
+    abortInFlight();
+
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: "user",
@@ -254,8 +327,10 @@ export default function ChatWindow() {
     setIsLoading(true);
     setHighlightedSource(null);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch("/api/chat", {
@@ -302,6 +377,7 @@ export default function ChatWindow() {
         content: "",
         sources,
         createdAt: new Date().toISOString(),
+        isStreaming: true, // BUG-023: explicit streaming flag
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -327,6 +403,16 @@ export default function ChatWindow() {
           });
         }
       }
+
+      // Mark streaming as complete
+      setMessages((prev) => {
+        const updated = [...prev];
+        const lastIndex = updated.length - 1;
+        if (updated[lastIndex]?.role === "assistant") {
+          updated[lastIndex] = { ...updated[lastIndex], isStreaming: false };
+        }
+        return updated;
+      });
     } catch (error) {
       console.error("Chat error:", error);
       if (error instanceof Error && error.name === "AbortError") {
@@ -355,15 +441,21 @@ export default function ChatWindow() {
         ]);
       }
     } finally {
+      abortControllerRef.current = null;
       setIsLoading(false);
     }
   }
 
   function handleNewChat() {
+    // BUG-001: Cancel any in-flight request
+    abortInFlight();
     setMessages([]);
     setSessionId(null);
     setHighlightedSource(null);
   }
+
+  /** BUG-018: Only refetch sessions on initial mount and after creating new session */
+  const sessionsRefreshTriggerRef = useRef(0);
 
   const lastAssistantIdx = messages.findLastIndex((m) => m.role === "assistant");
   const showFollowUps =
@@ -381,6 +473,7 @@ export default function ChatWindow() {
         onNewChat={handleNewChat}
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
+        refreshTrigger={sessionsRefreshTriggerRef.current}
       />
 
       {/* Main chat area */}
@@ -463,12 +556,14 @@ export default function ChatWindow() {
               onCitationClick={handleCitationClick}
               highlightedSource={highlightedSource}
               isLastMessage={index === lastAssistantIdx && message.role === "assistant"}
-              isStreaming={isLoading && index === lastAssistantIdx && message.role === "assistant" && message.content === ""}
+              /** BUG-023: Use explicit isStreaming flag instead of content === "" */
+              isStreaming={message.isStreaming ?? false}
               isLoading={isLoading}
               onRegenerate={handleRegenerate}
             />
           ))}
 
+          {/* Loading indicator — only when waiting for first chunk */}
           {isLoading && messages[messages.length - 1]?.role === "user" && (
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm">

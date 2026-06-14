@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -23,6 +23,8 @@ interface Message {
   content: string;
   sources?: Source[];
   createdAt: string;
+  /** BUG-023: Explicit streaming flag */
+  isStreaming?: boolean;
 }
 
 function formatTime(dateStr: string): string {
@@ -38,14 +40,16 @@ function formatTime(dateStr: string): string {
 }
 
 /**
- * Check if text contains citation patterns like [1], [2], [1][2], [1,2,3]
+ * BUG-002: Check if text contains citation patterns like [1], [2], [1,2]
+ * Uses negative lookahead (?!\() to avoid matching markdown links [text](url)
  */
 function hasCitations(text: string): boolean {
-  return /\[\d+(?:,\s*\d+)*\]/.test(text);
+  return /\[\d+(?:,\s*\d+)*\](?!\()/g.test(text);
 }
 
 /**
- * Parse text with inline citation markers into segments
+ * BUG-002: Parse text with inline citation markers into segments.
+ * Regex uses negative lookahead to skip markdown links like [text](url).
  */
 function parseContentWithCitations(
   text: string,
@@ -53,7 +57,7 @@ function parseContentWithCitations(
   activeCitation: number | null
 ) {
   const parts: React.ReactNode[] = [];
-  const regex = /\[(\d+(?:,\s*\d+)*)\]/g;
+  const regex = /\[(\d+(?:,\s*\d+)*)\](?!\()/g;
   let lastIndex = 0;
   let match;
 
@@ -90,18 +94,49 @@ function parseContentWithCitations(
 }
 
 /**
- * Custom markdown components for better typography
+ * BUG-002: Process children from react-markdown, handling both string and array types.
+ * Applies citation parsing to all string segments.
+ */
+function processMarkdownChildren(
+  children: React.ReactNode,
+  onCitationClick: (index: number) => void,
+  activeCitation: number | null
+): React.ReactNode {
+  if (typeof children === "string") {
+    return hasCitations(children)
+      ? parseContentWithCitations(children, onCitationClick, activeCitation)
+      : children;
+  }
+  if (Array.isArray(children)) {
+    return children.map((child, i) => {
+      if (typeof child === "string" && hasCitations(child)) {
+        return (
+          <span key={i}>
+            {parseContentWithCitations(child, onCitationClick, activeCitation)}
+          </span>
+        );
+      }
+      return child;
+    });
+  }
+  return children;
+}
+
+/**
+ * BUG-017: Memoized markdown components.
+ * Uses a ref for activeCitation to avoid recreating components on every click.
  */
 function createMarkdownComponents(
   onCitationClick: (index: number) => void,
-  activeCitation: number | null
+  activeCitationRef: React.RefObject<number | null>
 ) {
+  const withCitations = (children: React.ReactNode) =>
+    processMarkdownChildren(children, onCitationClick, activeCitationRef.current);
+
   return {
     p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
       <p className="mb-3 last:mb-0 leading-[1.7]" {...props}>
-        {typeof children === "string" && hasCitations(children)
-          ? parseContentWithCitations(children, onCitationClick, activeCitation)
-          : children}
+        {withCitations(children)}
       </p>
     ),
     ul: ({ children, ...props }: React.HTMLAttributes<HTMLUListElement>) => (
@@ -116,9 +151,7 @@ function createMarkdownComponents(
     ),
     li: ({ children, ...props }: React.HTMLAttributes<HTMLLIElement>) => (
       <li className="leading-[1.6]" {...props}>
-        {typeof children === "string" && hasCitations(children)
-          ? parseContentWithCitations(children, onCitationClick, activeCitation)
-          : children}
+        {withCitations(children)}
       </li>
     ),
     h1: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
@@ -227,6 +260,10 @@ export default function MessageBubble({
   const isUser = message.role === "user";
   const [activeCitation, setActiveCitation] = useState<number | null>(null);
 
+  /** BUG-017: Ref for activeCitation — components read from ref, not value */
+  const activeCitationRef = useRef<number | null>(null);
+  activeCitationRef.current = activeCitation;
+
   const timestamp = formatTime(message.createdAt);
   const sources = message.sources || [];
   const hasSourceData = sources.length > 0;
@@ -239,9 +276,10 @@ export default function MessageBubble({
     [onCitationClick]
   );
 
+  /** BUG-017: Memoized with stable handleCitationClick — ref provides activeCitation */
   const markdownComponents = useMemo(
-    () => createMarkdownComponents(handleCitationClick, activeCitation ?? highlightedSource ?? null),
-    [handleCitationClick, activeCitation, highlightedSource]
+    () => createMarkdownComponents(handleCitationClick, activeCitationRef),
+    [handleCitationClick]
   );
 
   return (
