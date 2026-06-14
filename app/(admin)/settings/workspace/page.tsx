@@ -3,6 +3,7 @@ import WorkspaceSwitcher from "@/components/workspace/workspace-switcher";
 import WorkspaceSettings from "@/components/workspace/workspace-settings";
 import PermissionMatrix from "@/components/workspace/permission-matrix";
 import MemberManagement from "@/components/workspace/member-management";
+import ActivityLog from "@/components/workspace/activity-log";
 
 export default function WorkspaceSettingsPage() {
   return (
@@ -30,6 +31,9 @@ export default function WorkspaceSettingsPage() {
 
         {/* Member Management */}
         <MemberManagement />
+
+        {/* Activity Log */}
+        <ActivityLog />
       </div>
     </DashboardShell>
   );

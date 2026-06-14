@@ -13,6 +13,7 @@ import {
   Search,
   LogOut,
   Clock,
+  MoreVertical,
 } from "lucide-react";
 import {
   Dialog,
@@ -21,6 +22,15 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import InviteDialog from "./invite-dialog";
 import InvitationList from "./invitation-list";
 
@@ -115,6 +125,9 @@ export default function MemberManagement() {
   const [removing, setRemoving] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
+  // Mobile bottom sheet for member actions
+  const [sheetMember, setSheetMember] = useState<Member | null>(null);
+
   // aria-live
   const [liveMessage, setLiveMessage] = useState("");
 
@@ -188,6 +201,7 @@ export default function MemberManagement() {
       if (!res.ok) throw new Error(data.error || "Gagal mengubah role");
       toast.success("Role berhasil diubah");
       setLiveMessage(`Role diubah ke ${newRole}`);
+      setSheetMember(null);
       await fetchMembers();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Gagal mengubah role");
@@ -206,6 +220,7 @@ export default function MemberManagement() {
       toast.success("Anggota berhasil dihapus");
       setLiveMessage(`Anggota ${confirmRemove.memberName} dihapus dari workspace`);
       setConfirmRemove({ open: false, memberId: "", memberName: "" });
+      setSheetMember(null);
       await fetchMembers();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Gagal menghapus anggota");
@@ -307,7 +322,7 @@ export default function MemberManagement() {
                   <UserPlus className="size-5" />
                   Tambah Anggota
                 </h3>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <input
                     type="email"
                     value={inviteEmail}
@@ -329,7 +344,7 @@ export default function MemberManagement() {
                     type="button"
                     onClick={handleInvite}
                     disabled={inviting || !inviteEmail.trim()}
-                    className="px-5 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    className="px-5 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                   >
                     {inviting ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />}
                     Tambah
@@ -377,7 +392,7 @@ export default function MemberManagement() {
               />
             </div>
 
-            {/* Members Table */}
+            {/* Members List — Desktop Table */}
             <div className="bg-card rounded-xl border border-border/20 overflow-hidden">
               <div className="px-6 py-4 border-b border-border/20">
                 <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -402,79 +417,133 @@ export default function MemberManagement() {
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-border/20">
-                  {filteredMembers.map((member) => {
-                    const memberIsOwner = member.role === "owner";
-                    const isSelf = member.userId === currentUserId || member.user.email === currentUserId;
-                    const canEdit = canManage && !memberIsOwner;
+                <>
+                  {/* Desktop: Table-like layout */}
+                  <div className="hidden md:block divide-y divide-border/20">
+                    {filteredMembers.map((member) => {
+                      const memberIsOwner = member.role === "owner";
+                      const isSelf = member.userId === currentUserId || member.user.email === currentUserId;
+                      const canEdit = canManage && !memberIsOwner;
 
-                    return (
-                      <div key={member.id} className="flex items-center gap-4 px-6 py-4">
-                        <div className="flex size-9 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
-                          {getInitials(member.user.name, member.user.email)}
-                        </div>
+                      return (
+                        <div key={member.id} className="flex items-center gap-4 px-6 py-4">
+                          <div className="flex size-9 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
+                            {getInitials(member.user.name, member.user.email)}
+                          </div>
 
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {member.user.name || "Unnamed"}
-                            {isSelf && <span className="text-xs text-muted-foreground ml-1">(Anda)</span>}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">{member.user.email}</p>
-                          <p className="text-xs text-muted-foreground/70 flex items-center gap-1 mt-0.5">
-                            <Clock className="size-3" />
-                            {formatLastActive(member.lastActiveAt)}
-                          </p>
-                        </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {member.user.name || "Unnamed"}
+                              {isSelf && <span className="text-xs text-muted-foreground ml-1">(Anda)</span>}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">{member.user.email}</p>
+                            <p className="text-xs text-muted-foreground/70 flex items-center gap-1 mt-0.5">
+                              <Clock className="size-3" />
+                              {formatLastActive(member.lastActiveAt)}
+                            </p>
+                          </div>
 
-                        {/* Role with tooltip */}
-                        {canEdit && !memberIsOwner ? (
-                          <div className="relative group">
-                            <select
-                              value={member.role}
-                              onChange={(e) => handleChangeRole(member.id, e.target.value)}
-                              disabled={changingRole === member.id}
-                              className={`appearance-none pl-3 pr-8 py-1.5 rounded-full text-xs font-medium border-0 cursor-pointer focus:ring-2 focus:ring-primary ${getRoleBadgeClass(member.role)}`}
+                          {/* Role with tooltip */}
+                          {canEdit && !memberIsOwner ? (
+                            <div className="relative group">
+                              <select
+                                value={member.role}
+                                onChange={(e) => handleChangeRole(member.id, e.target.value)}
+                                disabled={changingRole === member.id}
+                                className={`appearance-none pl-3 pr-8 py-1.5 rounded-full text-xs font-medium border-0 cursor-pointer focus:ring-2 focus:ring-primary ${getRoleBadgeClass(member.role)}`}
+                              >
+                                {ROLES.map((r) => (
+                                  <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
+                                ))}
+                              </select>
+                              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 size-3 pointer-events-none opacity-50" />
+                              {/* Tooltip */}
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-popover text-popover-foreground text-xs rounded-lg shadow-lg border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                {ROLE_DESCRIPTIONS[member.role]}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-popover" />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="relative group">
+                              <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${getRoleBadgeClass(member.role)}`}>
+                                {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                              </span>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-popover text-popover-foreground text-xs rounded-lg shadow-lg border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                {ROLE_DESCRIPTIONS[member.role]}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-popover" />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Actions */}
+                          {canEdit && !memberIsOwner ? (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmRemove({ open: true, memberId: member.id, memberName: member.user.name || member.user.email })}
+                              className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                              title="Hapus anggota"
                             >
-                              {ROLES.map((r) => (
-                                <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
-                              ))}
-                            </select>
-                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 size-3 pointer-events-none opacity-50" />
-                            {/* Tooltip */}
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-popover text-popover-foreground text-xs rounded-lg shadow-lg border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                              {ROLE_DESCRIPTIONS[member.role]}
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-popover" />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="relative group">
-                            <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${getRoleBadgeClass(member.role)}`}>
-                              {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
-                            </span>
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-popover text-popover-foreground text-xs rounded-lg shadow-lg border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                              {ROLE_DESCRIPTIONS[member.role]}
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-popover" />
-                            </div>
-                          </div>
-                        )}
+                              <Trash2 className="size-4" />
+                            </button>
+                          ) : (
+                            <div className="w-8" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
 
-                        {/* Actions */}
-                        {canEdit && !memberIsOwner ? (
-                          <button
-                            type="button"
-                            onClick={() => setConfirmRemove({ open: true, memberId: member.id, memberName: member.user.name || member.user.email })}
-                            className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                            title="Hapus anggota"
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
-                        ) : (
-                          <div className="w-8" />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                  {/* Mobile: Card layout */}
+                  <div className="md:hidden divide-y divide-border/20">
+                    {filteredMembers.map((member) => {
+                      const memberIsOwner = member.role === "owner";
+                      const isSelf = member.userId === currentUserId || member.user.email === currentUserId;
+                      const canEdit = canManage && !memberIsOwner;
+
+                      return (
+                        <div
+                          key={member.id}
+                          className="flex items-center gap-3 px-4 py-3 min-h-[44px]"
+                        >
+                          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
+                            {getInitials(member.user.name, member.user.email)}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {member.user.name || "Unnamed"}
+                              {isSelf && <span className="text-xs text-muted-foreground ml-1">(Anda)</span>}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">{member.user.email}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${getRoleBadgeClass(member.role)}`}>
+                                {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground/70 flex items-center gap-0.5">
+                                <Clock className="size-2.5" />
+                                {formatLastActive(member.lastActiveAt)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Mobile actions button */}
+                          {canEdit && !memberIsOwner ? (
+                            <button
+                              type="button"
+                              onClick={() => setSheetMember(member)}
+                              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                              title="Aksi anggota"
+                            >
+                              <MoreVertical className="size-5" />
+                            </button>
+                          ) : (
+                            <div className="w-11" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
 
@@ -516,6 +585,71 @@ export default function MemberManagement() {
           onOpenChange={setInviteDialogOpen}
           onInvited={() => setInvitationRefreshKey((k) => k + 1)}
         />
+
+        {/* Mobile Bottom Sheet for Member Actions */}
+        <Sheet open={!!sheetMember} onOpenChange={(open) => !open && setSheetMember(null)}>
+          <SheetContent side="bottom" className="rounded-t-xl">
+            <SheetHeader>
+              <SheetTitle>Aksi Anggota</SheetTitle>
+              <SheetDescription>
+                {sheetMember ? (
+                  <>
+                    {sheetMember.user.name || "Unnamed"} &middot; {sheetMember.user.email}
+                  </>
+                ) : null}
+              </SheetDescription>
+            </SheetHeader>
+
+            {sheetMember && (
+              <div className="space-y-2 px-4">
+                {/* Change Role */}
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Ubah Role</p>
+                  <div className="flex gap-2">
+                    {ROLES.map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => handleChangeRole(sheetMember.id, r)}
+                        disabled={changingRole === sheetMember.id || sheetMember.role === r}
+                        className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${
+                          sheetMember.role === r
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-foreground border-border hover:bg-muted disabled:opacity-50"
+                        }`}
+                      >
+                        {r.charAt(0).toUpperCase() + r.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Remove from workspace */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmRemove({
+                      open: true,
+                      memberId: sheetMember.id,
+                      memberName: sheetMember.user.name || sheetMember.user.email,
+                    });
+                    setSheetMember(null);
+                  }}
+                  className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-destructive hover:bg-destructive/10 rounded-lg transition-colors min-h-[44px]"
+                >
+                  <Trash2 className="size-4" />
+                  Hapus dari Workspace
+                </button>
+              </div>
+            )}
+
+            <SheetFooter>
+              <Button variant="outline" onClick={() => setSheetMember(null)} className="w-full">
+                Tutup
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
 
         {/* Confirm Remove Dialog */}
         <Dialog open={confirmRemove.open} onOpenChange={(open) => !open && setConfirmRemove({ open: false, memberId: "", memberName: "" })}>
