@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { Sparkles } from "lucide-react";
 import MessageBubble from "./message-bubble";
 import SessionSidebar from "./session-sidebar";
+import { cn } from "@/lib/utils";
 
 interface Message {
   id: string;
@@ -24,6 +26,12 @@ interface Source {
   similarity: number;
   metadata: Record<string, unknown>;
 }
+
+const FOLLOW_UP_SUGGESTIONS = [
+  "Jelaskan lebih detail",
+  "Berikan contoh",
+  "Ringkas dalam 3 poin",
+];
 
 export default function ChatWindow() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -65,12 +73,115 @@ export default function ChatWindow() {
 
   const handleCitationClick = useCallback((sourceIndex: number) => {
     setHighlightedSource((prev) => (prev === sourceIndex ? null : sourceIndex));
-    // Scroll to the source preview element
     const el = document.getElementById(`source-preview-${sourceIndex}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }, []);
+
+  const handleFollowUp = useCallback((suggestion: string) => {
+    setInput(suggestion);
+    // Auto-submit the follow-up
+    textareaRef.current?.closest("form")?.requestSubmit();
+  }, []);
+
+  const handleRegenerate = useCallback(async () => {
+    if (isLoading) return;
+
+    // Find the last assistant message to get context for regeneration
+    const lastAssistantIdx = messages.findLastIndex((m) => m.role === "assistant");
+    if (lastAssistantIdx === -1) return;
+
+    // Find the user message that prompted this assistant response
+    const lastUserIdx = messages.findLastIndex(
+      (m, i) => m.role === "user" && i < lastAssistantIdx
+    );
+    if (lastUserIdx === -1) return;
+
+    const userPrompt = messages[lastUserIdx].content;
+
+    // Remove the last assistant message
+    setMessages((prev) => prev.slice(0, lastAssistantIdx));
+    setIsLoading(true);
+    setHighlightedSource(null);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userPrompt,
+          sessionId,
+        }),
+      });
+
+      if (!response.ok) {
+        toast.error("Gagal membuat ulang jawaban.");
+        throw new Error("Gagal membuat ulang jawaban");
+      }
+
+      const newSessionId = response.headers.get("X-Session-Id");
+      const sourcesHeader = response.headers.get("X-Sources");
+
+      if (newSessionId) {
+        setSessionId(newSessionId);
+      }
+
+      let sources: Source[] = [];
+      if (sourcesHeader) {
+        try {
+          sources = JSON.parse(decodeURIComponent(sourcesHeader));
+        } catch {
+          // Ignore parse errors
+        }
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = "";
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "",
+        sources,
+        createdAt: new Date().toISOString(),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          assistantContent += chunk;
+
+          setMessages((prev) => {
+            const updated = [...prev];
+            const lastIndex = updated.length - 1;
+            if (updated[lastIndex]?.role === "assistant") {
+              updated[lastIndex] = {
+                ...updated[lastIndex],
+                content: assistantContent,
+              };
+            }
+            return updated;
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Regenerate error:", error);
+      if (
+        !(error instanceof Error && error.message === "Gagal membuat ulang jawaban")
+      ) {
+        toast.error("Terjadi kesalahan. Silakan coba lagi.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isLoading, messages, sessionId]);
 
   async function handleSessionSelect(session: {
     id: string;
@@ -147,7 +258,6 @@ export default function ChatWindow() {
         throw new Error("Gagal mengirim pesan");
       }
 
-      // Get session ID and sources from headers
       const newSessionId = response.headers.get("X-Session-Id");
       const sourcesHeader = response.headers.get("X-Sources");
 
@@ -155,7 +265,6 @@ export default function ChatWindow() {
         setSessionId(newSessionId);
       }
 
-      // Parse sources and attach directly to the assistant message
       let sources: Source[] = [];
       if (sourcesHeader) {
         try {
@@ -165,7 +274,6 @@ export default function ChatWindow() {
         }
       }
 
-      // Stream the response
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let assistantContent = "";
@@ -228,6 +336,13 @@ export default function ChatWindow() {
     setHighlightedSource(null);
   }
 
+  const lastAssistantIdx = messages.findLastIndex((m) => m.role === "assistant");
+  const showFollowUps =
+    !isLoading &&
+    messages.length > 0 &&
+    lastAssistantIdx !== -1 &&
+    messages[lastAssistantIdx]?.content.length > 0;
+
   return (
     <div className="flex h-full">
       {/* Sidebar */}
@@ -244,7 +359,6 @@ export default function ChatWindow() {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
           <div className="flex items-center gap-3">
-            {/* Hamburger for mobile */}
             <button
               onClick={() => setSidebarOpen(true)}
               className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg md:hidden"
@@ -293,12 +407,15 @@ export default function ChatWindow() {
             </div>
           )}
 
-          {messages.map((message) => (
+          {messages.map((message, index) => (
             <MessageBubble
               key={message.id}
               message={message}
               onCitationClick={handleCitationClick}
               highlightedSource={highlightedSource}
+              isLastMessage={index === lastAssistantIdx && message.role === "assistant"}
+              isStreaming={isLoading && index === lastAssistantIdx && message.role === "assistant" && message.content === ""}
+              onRegenerate={handleRegenerate}
             />
           ))}
 
@@ -325,6 +442,30 @@ export default function ChatWindow() {
 
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Follow-up suggestions */}
+        {showFollowUps && (
+          <div className="px-6 pb-2 flex flex-wrap gap-2">
+            {FOLLOW_UP_SUGGESTIONS.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => handleFollowUp(suggestion)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5",
+                  "text-xs font-medium text-muted-foreground",
+                  "bg-muted hover:bg-muted/80 rounded-full",
+                  "transition-colors duration-150",
+                  "border border-border hover:border-border/80",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                )}
+              >
+                <Sparkles className="h-3 w-3" />
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Input */}
         <div className="px-6 py-4 border-t border-border bg-card">
