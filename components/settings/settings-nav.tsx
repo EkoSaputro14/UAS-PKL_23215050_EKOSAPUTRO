@@ -3,15 +3,14 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
-  Settings,
-  Palette,
+  User,
   Brain,
-  Puzzle,
-  CreditCard,
-  FileBarChart,
-  Globe,
-  Shield,
   LayoutGrid,
+  Puzzle,
+  Settings,
+  CreditCard,
+  Shield,
+  Lock,
 } from "lucide-react";
 
 interface NavItem {
@@ -22,6 +21,11 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   {
+    label: "Akun",
+    href: "/settings/account",
+    icon: <User className="h-4 w-4" />,
+  },
+  {
     label: "AI Settings",
     href: "/settings",
     icon: <Brain className="h-4 w-4" />,
@@ -30,6 +34,11 @@ const NAV_ITEMS: NavItem[] = [
     label: "Workspace",
     href: "/settings/workspace",
     icon: <LayoutGrid className="h-4 w-4" />,
+  },
+  {
+    label: "Keamanan",
+    href: "/settings/security",
+    icon: <Lock className="h-4 w-4" />,
   },
   {
     label: "MCP",

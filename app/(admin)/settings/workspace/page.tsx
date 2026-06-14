@@ -4,6 +4,7 @@ import WorkspaceSettings from "@/components/workspace/workspace-settings";
 import PermissionMatrix from "@/components/workspace/permission-matrix";
 import MemberManagement from "@/components/workspace/member-management";
 import ActivityLog from "@/components/workspace/activity-log";
+import WorkspaceDanger from "@/components/settings/workspace-danger";
 
 export default function WorkspaceSettingsPage() {
   return (
@@ -30,6 +31,9 @@ export default function WorkspaceSettingsPage() {
         <PermissionMatrix />
         <MemberManagement />
         <ActivityLog />
+
+        {/* Danger Zone — only visible to owner */}
+        <WorkspaceDanger />
       </div>
     </SettingsLayout>
   );
