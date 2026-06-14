@@ -12,7 +12,7 @@ import {
   Users,
   Search,
   LogOut,
-  Info,
+  Clock,
 } from "lucide-react";
 import {
   Dialog,
@@ -35,6 +35,7 @@ interface Member {
   userId: string;
   role: string;
   createdAt: string;
+  lastActiveAt: string | null;
   user: MemberUser;
 }
 
@@ -64,6 +65,27 @@ function getInitials(name: string | null, email: string): string {
   return email.charAt(0).toUpperCase();
 }
 
+function formatLastActive(lastActiveAt: string | null): string {
+  if (!lastActiveAt) return "Belum pernah aktif";
+
+  const now = new Date();
+  const lastActive = new Date(lastActiveAt);
+  const diffMs = now.getTime() - lastActive.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSeconds < 60) return "Aktif baru saja";
+  if (diffMinutes < 60) return `Aktif ${diffMinutes} menit lalu`;
+  if (diffHours < 24) return `Aktif ${diffHours} jam lalu`;
+  if (diffDays === 1) return "Aktif kemarin";
+  if (diffDays < 30) return `Aktif ${diffDays} hari lalu`;
+  return `Aktif ${lastActive.toLocaleDateString("id-ID")}`;
+}
+
+const ALL_ROLE_FILTERS = ["all", "owner", "admin", "editor", "viewer"] as const;
+
 export default function MemberManagement() {
   const [members, setMembers] = useState<Member[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>("");
@@ -75,6 +97,9 @@ export default function MemberManagement() {
 
   // Search
   const [search, setSearch] = useState("");
+
+  // Role filter
+  const [roleFilter, setRoleFilter] = useState<string>("all");
 
   // Invite form
   const [inviteEmail, setInviteEmail] = useState("");
@@ -210,6 +235,10 @@ export default function MemberManagement() {
   const isOwner = currentUserRole === "owner";
 
   const filteredMembers = members.filter((m) => {
+    // Role filter
+    if (roleFilter !== "all" && m.role !== roleFilter) return false;
+
+    // Search filter
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
@@ -218,6 +247,8 @@ export default function MemberManagement() {
       m.role.toLowerCase().includes(q)
     );
   });
+
+  const hasActiveFilter = roleFilter !== "all" || search.trim().length > 0;
 
   if (loading) {
     return (
@@ -310,6 +341,30 @@ export default function MemberManagement() {
               </div>
             )}
 
+            {/* Role Filter Buttons */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {ALL_ROLE_FILTERS.map((filter) => {
+                const count = filter === "all"
+                  ? members.length
+                  : members.filter((m) => m.role === filter).length;
+                return (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => setRoleFilter(filter)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                      roleFilter === filter
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {filter === "all" ? "Semua" : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                    <span className="ml-1 opacity-70">({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Member Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -329,7 +384,7 @@ export default function MemberManagement() {
                   <Shield className="size-5" />
                   Anggota Workspace
                   <span className="text-sm font-normal text-muted-foreground">
-                    ({filteredMembers.length}{search ? ` dari ${members.length}` : ""})
+                    ({filteredMembers.length}{hasActiveFilter ? ` dari ${members.length}` : ""})
                   </span>
                 </h3>
               </div>
@@ -340,10 +395,10 @@ export default function MemberManagement() {
                     <Users className="size-6 text-muted-foreground/50" />
                   </div>
                   <p className="text-sm font-medium text-foreground mb-1">
-                    {search ? "Tidak ada anggota yang cocok" : "Belum ada anggota"}
+                    {hasActiveFilter ? "Tidak ada anggota yang cocok" : "Belum ada anggota"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {search ? "Coba kata kunci lain" : "Undang anggota pertama ke workspace ini"}
+                    {hasActiveFilter ? "Coba kata kunci atau filter lain" : "Undang anggota pertama ke workspace ini"}
                   </p>
                 </div>
               ) : (
@@ -365,6 +420,10 @@ export default function MemberManagement() {
                             {isSelf && <span className="text-xs text-muted-foreground ml-1">(Anda)</span>}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">{member.user.email}</p>
+                          <p className="text-xs text-muted-foreground/70 flex items-center gap-1 mt-0.5">
+                            <Clock className="size-3" />
+                            {formatLastActive(member.lastActiveAt)}
+                          </p>
                         </div>
 
                         {/* Role with tooltip */}

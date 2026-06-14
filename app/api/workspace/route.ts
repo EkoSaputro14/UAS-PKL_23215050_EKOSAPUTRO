@@ -8,6 +8,16 @@ import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
 // GET — current workspace + members
 export async function GET() {
   return withWorkspace(async (userId, workspaceId) => {
+    // Update current user's lastActiveAt
+    try {
+      await prisma.workspaceMember.update({
+        where: { workspaceId_userId: { workspaceId, userId } },
+        data: { lastActiveAt: new Date() },
+      });
+    } catch {
+      // Non-critical — ignore if update fails
+    }
+
     const workspace = await prisma.workspace.findUnique({
       where: { id: workspaceId },
       include: {
@@ -31,6 +41,8 @@ export async function GET() {
         id: workspace.id,
         name: workspace.name,
         slug: workspace.slug,
+        description: workspace.description,
+        avatarUrl: workspace.avatarUrl,
         createdAt: workspace.createdAt,
       },
       members: workspace.members.map((m) => ({
@@ -38,6 +50,7 @@ export async function GET() {
         userId: m.userId,
         role: m.role,
         createdAt: m.createdAt,
+        lastActiveAt: m.lastActiveAt,
         user: m.user,
       })),
       memberCount: workspace.members.length,
@@ -47,14 +60,14 @@ export async function GET() {
   });
 }
 
-// PATCH — update workspace name
+// PATCH — update workspace name, description, and avatarUrl
 export async function PATCH(request: NextRequest) {
   const session = await auth();
   if (!session?.user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userId = session.user.id as string;
+  const userId = session.user.id! as string;
   const workspaceId = await resolveWorkspaceId(userId);
   await setWorkspaceContext(workspaceId);
 
@@ -69,26 +82,68 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name } = body;
+    const { name, description, avatarUrl } = body;
 
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
-      return Response.json(
-        { error: "Workspace name is required" },
-        { status: 400 }
-      );
+    // Build update data — only include fields that are provided
+    const updateData: Record<string, string | null> = {};
+    let hasChanges = false;
+
+    if (name !== undefined) {
+      if (typeof name !== "string" || name.trim().length === 0) {
+        return Response.json(
+          { error: "Workspace name is required" },
+          { status: 400 }
+        );
+      }
+      if (name.length > 200) {
+        return Response.json(
+          { error: "Workspace name must be 200 characters or less" },
+          { status: 400 }
+        );
+      }
+      updateData.name = name.trim();
+      hasChanges = true;
     }
 
-    if (name.length > 200) {
+    if (description !== undefined) {
+      if (description !== null && typeof description !== "string") {
+        return Response.json(
+          { error: "Description must be a string" },
+          { status: 400 }
+        );
+      }
+      if (description && description.length > 500) {
+        return Response.json(
+          { error: "Description must be 500 characters or less" },
+          { status: 400 }
+        );
+      }
+      updateData.description = description?.trim() || null;
+      hasChanges = true;
+    }
+
+    if (avatarUrl !== undefined) {
+      if (avatarUrl !== null && typeof avatarUrl !== "string") {
+        return Response.json(
+          { error: "Avatar URL must be a string" },
+          { status: 400 }
+        );
+      }
+      updateData.avatarUrl = avatarUrl?.trim() || null;
+      hasChanges = true;
+    }
+
+    if (!hasChanges) {
       return Response.json(
-        { error: "Workspace name must be 200 characters or less" },
+        { error: "No valid fields to update" },
         { status: 400 }
       );
     }
 
     const updated = await prisma.workspace.update({
       where: { id: workspaceId },
-      data: { name: name.trim() },
-      select: { id: true, name: true, slug: true, updatedAt: true },
+      data: updateData,
+      select: { id: true, name: true, slug: true, description: true, avatarUrl: true, updatedAt: true },
     });
 
     // Audit: workspace updated
@@ -99,7 +154,7 @@ export async function PATCH(request: NextRequest) {
       action: AUDIT_ACTIONS.WORKSPACE_UPDATE,
       resourceType: "workspace",
       resourceId: workspaceId,
-      metadata: { name: name.trim() },
+      metadata: updateData,
     });
 
     return Response.json({ success: true, workspace: updated });

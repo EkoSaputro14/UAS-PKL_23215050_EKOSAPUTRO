@@ -36,11 +36,13 @@ model User {
 }
 
 model Workspace {
-  id        String   @id @default(uuid())
-  name      String   @db.VarChar(200)
-  slug      String   @unique @db.VarChar(100)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(200)
+  slug        String   @unique @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  avatarUrl   String?  @map("avatar_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   members          WorkspaceMember[]
   invitations      WorkspaceInvitation[]
@@ -68,11 +70,12 @@ model Workspace {
 }
 
 model WorkspaceMember {
-  id          String   @id @default(uuid())
-  workspaceId String   @map("workspace_id")
-  userId      String   @map("user_id")
-  role        String   @default("viewer") @db.VarChar(20)
-  createdAt   DateTime @default(now()) @map("created_at")
+  id           String    @id @default(uuid())
+  workspaceId  String    @map("workspace_id")
+  userId       String    @map("user_id")
+  role         String    @default("viewer") @db.VarChar(20)
+  lastActiveAt DateTime? @map("last_active_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)

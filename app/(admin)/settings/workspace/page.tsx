@@ -1,5 +1,7 @@
 import DashboardShell from "@/components/layout/dashboard-shell";
 import WorkspaceSwitcher from "@/components/workspace/workspace-switcher";
+import WorkspaceSettings from "@/components/workspace/workspace-settings";
+import PermissionMatrix from "@/components/workspace/permission-matrix";
 import MemberManagement from "@/components/workspace/member-management";
 
 export default function WorkspaceSettingsPage() {
@@ -9,7 +11,10 @@ export default function WorkspaceSettingsPage() {
         Lewati ke konten
       </a>
       <div id="main-content" className="space-y-8" tabIndex={-1}>
-        {/* Workspace Info */}
+        {/* Workspace Settings */}
+        <WorkspaceSettings />
+
+        {/* Workspace Switcher */}
         <div className="bg-card rounded-xl border border-border/20 p-6">
           <h2 className="text-2xl font-bold text-foreground mb-1">
             Workspace
@@ -19,6 +24,9 @@ export default function WorkspaceSettingsPage() {
           </p>
           <WorkspaceSwitcher />
         </div>
+
+        {/* Permission Matrix */}
+        <PermissionMatrix />
 
         {/* Member Management */}
         <MemberManagement />

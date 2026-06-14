@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Building2, ChevronDown, Check, Users, Loader2, Plus } from "lucide-react";
+import { Building2, ChevronDown, Check, Users, Loader2, Plus, Mail } from "lucide-react";
 
 interface WorkspaceInfo {
   id: string;
@@ -59,6 +59,9 @@ export default function WorkspaceSwitcher() {
   const [createName, setCreateName] = useState("");
   const [creating, setCreating] = useState(false);
 
+  // Invitation badge
+  const [pendingInvitationCount, setPendingInvitationCount] = useState(0);
+
   const fetchWorkspaces = useCallback(async () => {
     try {
       const res = await fetch("/api/workspace/switch");
@@ -74,9 +77,25 @@ export default function WorkspaceSwitcher() {
     }
   }, []);
 
+  const fetchPendingInvitations = useCallback(async () => {
+    try {
+      const res = await fetch("/api/workspace/invitations");
+      if (res.ok) {
+        const data = await res.json();
+        const pendingCount = (data.invitations ?? []).filter(
+          (inv: { status: string }) => inv.status === "pending"
+        ).length;
+        setPendingInvitationCount(pendingCount);
+      }
+    } catch {
+      // Non-critical — ignore
+    }
+  }, []);
+
   useEffect(() => {
     fetchWorkspaces();
-  }, [fetchWorkspaces]);
+    fetchPendingInvitations();
+  }, [fetchWorkspaces, fetchPendingInvitations]);
 
   const handleSwitch = async (workspaceId: string) => {
     if (workspaceId === selectedId || switching) return;
@@ -165,6 +184,11 @@ export default function WorkspaceSwitcher() {
           <span className="text-sm font-medium text-foreground truncate">
             {selected?.name ?? "Pilih workspace"}
           </span>
+          {pendingInvitationCount > 0 && (
+            <span className="inline-flex items-center justify-center size-5 rounded-full bg-red-500 text-white text-[10px] font-bold">
+              {pendingInvitationCount > 9 ? "9+" : pendingInvitationCount}
+            </span>
+          )}
           <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
         </div>
         <div className="flex items-center gap-1 text-muted-foreground">
@@ -209,6 +233,12 @@ export default function WorkspaceSwitcher() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium truncate">{ws.name}</p>
+                  {pendingInvitationCount > 0 && isSelected && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] text-red-500 font-medium">
+                      <Mail className="size-3" />
+                      {pendingInvitationCount}
+                    </span>
+                  )}
                   <span
                     className={cn(
                       "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
