@@ -466,6 +466,14 @@ export default function ChatWindow() {
 
   return (
     <div className="flex h-full">
+      {/* BUG-014: Skip-to-content link for keyboard/screen-reader navigation */}
+      <a
+        href="#chat-messages"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        Lewati ke pesan
+      </a>
+
       {/* Sidebar */}
       <SessionSidebar
         currentSessionId={sessionId}
@@ -483,7 +491,7 @@ export default function ChatWindow() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg md:hidden"
+              className="inline-flex items-center justify-center w-[44px] h-[44px] text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg md:hidden"
               aria-label="Buka riwayat chat"
             >
               <svg
@@ -508,14 +516,20 @@ export default function ChatWindow() {
           </div>
           <button
             onClick={handleNewChat}
-            className="px-4 py-2 text-sm bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+            className="inline-flex items-center justify-center px-4 h-[44px] text-sm bg-muted hover:bg-muted/80 rounded-lg transition-colors"
           >
             Chat Baru
           </button>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Messages — BUG-013: aria-live announces new messages to screen readers */}
+        <div
+          id="chat-messages"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-label="Percakapan"
+          className="flex-1 overflow-y-auto p-6 space-y-6"
+        >
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="text-6xl mb-4">🤖</div>
@@ -565,7 +579,7 @@ export default function ChatWindow() {
 
           {/* Loading indicator — only when waiting for first chunk */}
           {isLoading && messages[messages.length - 1]?.role === "user" && (
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3" role="status" aria-label="AI sedang menulis">
               <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm">
                 AI
               </div>
@@ -586,6 +600,15 @@ export default function ChatWindow() {
           )}
 
           <div ref={messagesEndRef} />
+
+          {/* BUG-013: Screen-reader-only status for streaming */}
+          {isLoading && (
+            <div className="sr-only" role="status">
+              {messages[messages.length - 1]?.role === "user"
+                ? "AI sedang menulis jawaban..."
+                : "AI sedang menulis..."}
+            </div>
+          )}
         </div>
 
         {/* Follow-up suggestions */}
@@ -628,7 +651,7 @@ export default function ChatWindow() {
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="inline-flex items-center justify-center w-[48px] h-[48px] bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-
 interface CitationMarkerProps {
   index: number;
   isActive?: boolean;
@@ -22,11 +21,11 @@ export default function CitationMarker({
       }}
       className={cn(
         "inline-flex items-center justify-center",
-        "min-w-[20px] h-[18px] px-1",
-        "text-[10px] font-semibold leading-none",
-        "rounded-md transition-all duration-150",
+        /* BUG-013/Touch: 44px minimum touch target */
+        "min-w-[44px] h-[44px] px-2 -mx-2",
+        "text-[11px] font-semibold leading-none",
+        "rounded-lg transition-all duration-150",
         "cursor-pointer select-none",
-        "align-super",
         isActive
           ? "bg-primary text-primary-foreground ring-1 ring-primary/30"
           : "bg-primary/10 text-primary hover:bg-primary/20",

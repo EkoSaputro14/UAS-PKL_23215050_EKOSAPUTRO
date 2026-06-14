@@ -111,16 +111,19 @@ export default function SessionSidebar({
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile overlay — z-40 for overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black/20 z-40 md:hidden"
           onClick={onToggle}
+          aria-hidden="true"
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — z-50 for sidebar (above overlay) */}
       <aside
+        role="complementary"
+        aria-label="Riwayat percakapan"
         className={`fixed md:relative z-50 md:z-auto top-0 left-0 h-full w-72 bg-background border-r border-border flex flex-col transition-transform duration-200 ${
           isOpen
             ? "translate-x-0"
@@ -133,7 +136,7 @@ export default function SessionSidebar({
           <div className="flex items-center gap-1">
             <button
               onClick={onNewChat}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+              className="inline-flex items-center justify-center w-[44px] h-[44px] text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
               title="Chat baru"
               aria-label="Chat baru"
             >
@@ -152,7 +155,7 @@ export default function SessionSidebar({
             </button>
             <button
               onClick={onToggle}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors md:hidden"
+              className="inline-flex items-center justify-center w-[44px] h-[44px] text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors md:hidden"
               aria-label="Tutup sidebar"
             >
               <svg
@@ -223,7 +226,7 @@ export default function SessionSidebar({
                     </span>
                     <button
                       onClick={(e) => handleDelete(e, session.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-red-600 rounded transition-all"
+                      className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center w-[44px] h-[44px] text-muted-foreground hover:text-red-600 rounded-lg transition-all"
                       aria-label="Hapus percakapan"
                     >
                       <svg

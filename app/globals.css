@@ -458,3 +458,25 @@ textarea::-webkit-scrollbar-thumb {
     @apply font-sans;
   }
 }
+
+/* ============================================================
+   MOBILE — Dynamic viewport height fallback (Sprint D3)
+   ============================================================ */
+
+/* Fallback for browsers without dvh support */
+@supports not (height: 100dvh) {
+  .h-\[100dvh\] {
+    height: 100vh;
+    height: 100svh;
+  }
+}
+
+/* Ensure minimum touch targets on mobile */
+@media (pointer: coarse) {
+  button,
+  a,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

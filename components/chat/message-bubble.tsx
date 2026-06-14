@@ -265,6 +265,22 @@ export default function MessageBubble({
   activeCitationRef.current = activeCitation;
 
   const timestamp = formatTime(message.createdAt);
+  /** BUG-015: Full datetime string for screen readers */
+  const fullTimestamp = (() => {
+    try {
+      const d = new Date(message.createdAt);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "";
+    }
+  })();
   const sources = message.sources || [];
   const hasSourceData = sources.length > 0;
 
@@ -288,6 +304,8 @@ export default function MessageBubble({
         "group relative flex flex-col",
         isUser ? "items-end" : "items-start"
       )}
+      role="article"
+      aria-label={isUser ? "Anda" : "AI"}
     >
       <div
         className={cn(
@@ -346,10 +364,11 @@ export default function MessageBubble({
             />
           )}
 
-          {/* Timestamp */}
+          {/* Timestamp — BUG-015: visible on hover, always available to screen readers */}
           {timestamp && (
             <span className="text-[11px] text-muted-foreground px-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              {timestamp}
+              <span className="sr-only">{fullTimestamp}</span>
+              <span aria-hidden="true">{timestamp}</span>
             </span>
           )}
         </div>

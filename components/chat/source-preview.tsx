@@ -76,7 +76,7 @@ export default function SourcePreview({
       <button
         type="button"
         onClick={() => setExpanded((prev) => !prev)}
-        className="w-full flex items-center justify-between p-3 text-left"
+        className="w-full inline-flex items-center justify-between min-h-[44px] p-3 text-left"
         aria-expanded={expanded}
         aria-controls={`source-content-${index}`}
       >
