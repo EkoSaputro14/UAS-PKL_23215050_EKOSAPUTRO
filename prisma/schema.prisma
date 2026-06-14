@@ -23,6 +23,7 @@ model User {
 
   documents        Document[]
   documentChunks   DocumentChunk[]
+  folders          Folder[]
   chatSessions     ChatSession[]
   analyticsEvents  AnalyticsEvent[]
   promptTemplates  PromptTemplate[]  @relation("PromptCreator")
@@ -45,6 +46,7 @@ model Workspace {
   invitations      WorkspaceInvitation[]
   documents        Document[]
   documentChunks   DocumentChunk[]
+  folders          Folder[]
   chatSessions     ChatSession[]
   analyticsEvents  AnalyticsEvent[]
   promptTemplates  PromptTemplate[]
@@ -85,6 +87,23 @@ model WorkspaceMember {
 // DOCUMENTS & CHUNKS
 // ============================================================
 
+model Folder {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(200)
+  userId      String   @map("user_id")
+  workspaceId String   @map("workspace_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  documents Document[]
+
+  @@unique([name, workspaceId])
+  @@index([workspaceId])
+  @@map("folders")
+}
+
 model Document {
   id          String   @id @default(uuid())
   userId      String   @map("user_id")
@@ -95,14 +114,17 @@ model Document {
   status      String   @default("processing") @db.VarChar(50)
   chunkCount  Int      @default(0) @map("chunk_count")
   description String?  @db.VarChar(500)
+  folderId    String?  @map("folder_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  folder    Folder?          @relation(fields: [folderId], references: [id], onDelete: SetNull)
   chunks    DocumentChunk[]
 
   @@index([workspaceId], map: "documents_workspace_id_idx")
+  @@index([folderId], map: "documents_folder_id_idx")
   @@map("documents")
 }
 

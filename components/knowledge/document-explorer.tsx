@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatDateSafe } from "@/lib/date-utils";
@@ -24,6 +24,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import ActionSheet from "@/components/documents/action-sheet";
 
 interface Document {
   id: string;
@@ -32,6 +33,7 @@ interface Document {
   status: string;
   chunkCount: number;
   fileSize?: number;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -70,7 +72,64 @@ const STATUS_BADGES: Record<string, { label: string; variant: "default" | "secon
   failed: { label: "Failed", variant: "destructive", icon: "\u274C" },
 };
 
-export default function DocumentExplorer() {
+// ============ Search History Helpers ============
+const SEARCH_HISTORY_KEY = "mimotes_recent_searches";
+const MAX_SEARCH_HISTORY = 10;
+
+function getSearchHistory(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(SEARCH_HISTORY_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSearchToHistory(query: string) {
+  if (!query.trim()) return;
+  try {
+    const history = getSearchHistory();
+    const filtered = history.filter((h) => h !== query);
+    filtered.unshift(query);
+    const trimmed = filtered.slice(0, MAX_SEARCH_HISTORY);
+    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(trimmed));
+  } catch {
+    // localStorage may not be available
+  }
+}
+
+function clearSearchHistory() {
+  try {
+    localStorage.removeItem(SEARCH_HISTORY_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+// ============ Hook for mobile detection ============
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    function checkMobile() {
+      setIsMobile(window.innerWidth < 768);
+    }
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  return isMobile;
+}
+
+// ============ Main Component ============
+interface DocumentExplorerProps {
+  folderId?: string | null;
+}
+
+export default function DocumentExplorer({ folderId = null }: DocumentExplorerProps) {
+  const isMobile = useIsMobile();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
@@ -86,14 +145,32 @@ export default function DocumentExplorer() {
   const [quickStatusTab, setQuickStatusTab] = useState("");
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
-  const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [viewMode, setViewMode] = useState<ViewMode>(isMobile ? "grid" : "table");
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  // Feature 1: Bulk Actions
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  // Feature 3: Search suggestions
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Feature 4: Mobile action sheet
+  const [actionSheetDoc, setActionSheetDoc] = useState<Document | null>(null);
+
   const [overviewStats, setOverviewStats] = useState({
     totalDocuments: 0,
     totalChunks: 0,
     pdfRatio: 0,
     imageAssets: 0,
   });
+
+  // Update view mode when switching to/from mobile
+  useEffect(() => {
+    setViewMode(isMobile ? "grid" : "table");
+  }, [isMobile]);
 
   // Fetch overview stats
   useEffect(() => {
@@ -119,6 +196,11 @@ export default function DocumentExplorer() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  // Clear selection when documents change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [documents]);
+
   const fetchDocuments = useCallback(async (page: number = 1) => {
     setLoading(true);
     try {
@@ -133,6 +215,7 @@ export default function DocumentExplorer() {
       // Quick status tab takes priority over dropdown filter
       const effectiveStatus = quickStatusTab || filterStatus;
       if (effectiveStatus) params.set("status", effectiveStatus);
+      if (folderId) params.set("folderId", folderId);
 
       const res = await fetch(`/api/knowledge/documents?${params}`);
       if (!res.ok) throw new Error("Failed to fetch");
@@ -144,11 +227,102 @@ export default function DocumentExplorer() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, filterType, filterStatus, quickStatusTab, sortField, sortOrder]);
+  }, [debouncedSearch, filterType, filterStatus, quickStatusTab, sortField, sortOrder, folderId]);
 
   useEffect(() => {
     fetchDocuments(1);
   }, [fetchDocuments, quickStatusTab]);
+
+  // Load search history on focus
+  function handleSearchFocus() {
+    setSearchHistory(getSearchHistory());
+    setShowSearchSuggestions(true);
+  }
+
+  function handleSearchBlur() {
+    // Delay to allow click on suggestion
+    setTimeout(() => setShowSearchSuggestions(false), 200);
+  }
+
+  function handleSearchSubmit(value: string) {
+    if (value.trim()) {
+      saveSearchToHistory(value.trim());
+    }
+    setSearch(value);
+    setShowSearchSuggestions(false);
+  }
+
+  function selectSuggestion(value: string) {
+    setSearch(value);
+    saveSearchToHistory(value);
+    setShowSearchSuggestions(false);
+    searchInputRef.current?.blur();
+  }
+
+  function handleClearHistory() {
+    clearSearchHistory();
+    setSearchHistory([]);
+  }
+
+  // Feature 1: Bulk Actions
+  function toggleSelectAll() {
+    if (selectedIds.size === documents.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(documents.map((d) => d.id)));
+    }
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  async function handleBulkDelete() {
+    if (!confirm(`Hapus ${selectedIds.size} dokumen? Tindakan ini tidak dapat dibatalkan.`)) return;
+
+    setBulkDeleting(true);
+    try {
+      const res = await fetch("/api/documents/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+
+      if (!res.ok) throw new Error("Failed to bulk delete");
+
+      setSelectedIds(new Set());
+      fetchDocuments(pagination.page);
+    } catch (err) {
+      console.error("Bulk delete failed:", err);
+    } finally {
+      setBulkDeleting(false);
+    }
+  }
+
+  // Feature 4: Move document to folder
+  async function handleMoveToFolder(docId: string, folderId: string | null) {
+    try {
+      const res = await fetch("/api/documents/bulk", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [docId], folderId }),
+      });
+
+      if (!res.ok) throw new Error("Failed to move document");
+
+      fetchDocuments(pagination.page);
+    } catch (err) {
+      console.error("Move document failed:", err);
+    }
+  }
 
   async function handleDelete(id: string, title: string) {
     if (!confirm(`Delete "${title}"? This will remove all chunks and cannot be undone.`)) return;
@@ -198,6 +372,11 @@ export default function DocumentExplorer() {
 
   const hasActiveFilters = debouncedSearch || filterType || filterStatus || quickStatusTab;
 
+  // Filter search history for autocomplete
+  const filteredHistory = searchHistory.filter((h) =>
+    search ? h.toLowerCase().includes(search.toLowerCase()) : true
+  );
+
   return (
     <div className="space-y-4">
       {/* Overview Stats Row */}
@@ -241,6 +420,32 @@ export default function DocumentExplorer() {
         ))}
       </div>
 
+      {/* Feature 1: Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 rounded-lg border bg-primary/5 px-4 py-2">
+          <span className="text-sm font-medium">
+            {selectedIds.size} dokumen dipilih
+          </span>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleBulkDelete}
+            disabled={bulkDeleting}
+          >
+            {bulkDeleting ? (
+              <svg className="mr-1 size-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : null}
+            Hapus ({selectedIds.size})
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+            Batal
+          </Button>
+        </div>
+      )}
+
       {/* Search & Filters Bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
@@ -253,11 +458,81 @@ export default function DocumentExplorer() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <Input
-            placeholder="Search documents..."
+            ref={searchInputRef}
+            placeholder="Cari dokumen..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onFocus={handleSearchFocus}
+            onBlur={handleSearchBlur}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSearchSubmit(search);
+              }
+            }}
             className="pl-9"
+            aria-label="Cari dokumen"
           />
+
+          {/* Feature 3: Search Suggestions Dropdown */}
+          {showSearchSuggestions && (
+            <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border bg-popover shadow-md">
+              {!search && searchHistory.length > 0 && (
+                <div className="p-2">
+                  <div className="flex items-center justify-between px-2 py-1">
+                    <span className="text-xs font-medium text-muted-foreground">Pencarian Terakhir</span>
+                    <button
+                      onClick={handleClearHistory}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Hapus Riwayat
+                    </button>
+                  </div>
+                  {filteredHistory.map((query, i) => (
+                    <button
+                      key={i}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        selectSuggestion(query);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted transition-colors"
+                    >
+                      <svg className="size-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="truncate">{query}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {search && filteredHistory.length > 0 && (
+                <div className="p-2">
+                  <div className="px-2 py-1">
+                    <span className="text-xs font-medium text-muted-foreground">Saran Pencarian</span>
+                  </div>
+                  {filteredHistory.map((query, i) => (
+                    <button
+                      key={i}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        selectSuggestion(query);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted transition-colors"
+                    >
+                      <svg className="size-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <span className="truncate">{query}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!search && searchHistory.length === 0 && (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  Belum ada riwayat pencarian
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <select
@@ -369,6 +644,17 @@ export default function DocumentExplorer() {
           <Table>
             <TableHeader>
               <TableRow>
+                {/* Feature 1: Checkbox column */}
+                <TableHead className="w-[40px]">
+                  <label className="flex items-center" aria-label="Pilih semua dokumen">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.size === documents.length && documents.length > 0}
+                      onChange={toggleSelectAll}
+                      className="size-4 rounded border-gray-300"
+                    />
+                  </label>
+                </TableHead>
                 <TableHead className="w-[300px]">
                   <button onClick={() => toggleSort("title")} className="inline-flex items-center font-medium hover:text-foreground">
                     Name <SortIcon field="title" />
@@ -384,22 +670,38 @@ export default function DocumentExplorer() {
                     Status <SortIcon field="status" />
                   </button>
                 </TableHead>
-                <TableHead className="w-[80px]">
-                  <button onClick={() => toggleSort("chunkCount")} className="inline-flex items-center font-medium hover:text-foreground">
-                    Chunks <SortIcon field="chunkCount" />
-                  </button>
-                </TableHead>
-                <TableHead className="w-[120px]">
-                  <button onClick={() => toggleSort("createdAt")} className="inline-flex items-center font-medium hover:text-foreground">
-                    Uploaded <SortIcon field="createdAt" />
-                  </button>
-                </TableHead>
+                {/* Feature 4: Hide columns on mobile */}
+                {!isMobile && (
+                  <TableHead className="w-[80px]">
+                    <button onClick={() => toggleSort("chunkCount")} className="inline-flex items-center font-medium hover:text-foreground">
+                      Chunks <SortIcon field="chunkCount" />
+                    </button>
+                  </TableHead>
+                )}
+                {!isMobile && (
+                  <TableHead className="w-[120px]">
+                    <button onClick={() => toggleSort("createdAt")} className="inline-flex items-center font-medium hover:text-foreground">
+                      Uploaded <SortIcon field="createdAt" />
+                    </button>
+                  </TableHead>
+                )}
                 <TableHead className="w-[100px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {documents.map((doc) => (
                 <TableRow key={doc.id} className="group">
+                  {/* Feature 1: Checkbox */}
+                  <TableCell>
+                    <label className="flex items-center" aria-label={`Pilih ${doc.title}`}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(doc.id)}
+                        onChange={() => toggleSelect(doc.id)}
+                        className="size-4 rounded border-gray-300"
+                      />
+                    </label>
+                  </TableCell>
                   <TableCell>
                     <Link
                       href={`/knowledge/documents/${doc.id}`}
@@ -417,41 +719,61 @@ export default function DocumentExplorer() {
                   <TableCell>
                     <StatusBadge status={doc.status} />
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {doc.status === "processing" ? "—" : doc.chunkCount}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {formatDate(doc.createdAt)}
-                  </TableCell>
+                  {/* Feature 4: Hide columns on mobile */}
+                  {!isMobile && (
+                    <TableCell className="text-muted-foreground">
+                      {doc.status === "processing" ? "—" : doc.chunkCount}
+                    </TableCell>
+                  )}
+                  {!isMobile && (
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(doc.createdAt)}
+                    </TableCell>
+                  )}
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Link href={`/knowledge/documents/${doc.id}`}>
-                        <Button variant="ghost" size="sm" className="size-8 p-0">
-                          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        </Button>
-                      </Link>
+                    {/* Feature 4: Mobile uses action sheet, desktop uses inline buttons */}
+                    {isMobile ? (
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="size-8 p-0 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(doc.id, doc.title)}
-                        disabled={deleting === doc.id}
+                        className="size-8 p-0"
+                        onClick={() => setActionSheetDoc(doc)}
+                        aria-label={`Opsi untuk ${doc.title}`}
                       >
-                        {deleting === doc.id ? (
-                          <svg className="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                        ) : (
-                          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        )}
+                        <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                        </svg>
                       </Button>
-                    </div>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1">
+                        <Link href={`/knowledge/documents/${doc.id}`}>
+                          <Button variant="ghost" size="sm" className="size-8 p-0">
+                            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="size-8 p-0 text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(doc.id, doc.title)}
+                          disabled={deleting === doc.id}
+                        >
+                          {deleting === doc.id ? (
+                            <svg className="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                          ) : (
+                            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -462,24 +784,70 @@ export default function DocumentExplorer() {
         /* Grid View */
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {documents.map((doc) => (
-            <Link
+            <div
               key={doc.id}
-              href={`/knowledge/documents/${doc.id}`}
-              className="group rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50"
+              className={cn(
+                "group relative rounded-lg border bg-card p-4 transition-colors",
+                isMobile ? "min-h-[44px]" : "",
+                selectedIds.has(doc.id) ? "border-primary bg-primary/5" : "hover:bg-accent/50"
+              )}
             >
-              <div className="flex items-start justify-between">
-                <span className="text-2xl">{FILE_TYPE_ICONS[doc.fileType] || "📄"}</span>
-                <StatusBadge status={doc.status} />
+              {/* Feature 1: Checkbox overlay for grid view */}
+              <div className="absolute left-2 top-2 z-10">
+                <label className="flex items-center" aria-label={`Pilih ${doc.title}`}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(doc.id)}
+                    onChange={() => toggleSelect(doc.id)}
+                    className="size-4 rounded border-gray-300"
+                  />
+                </label>
               </div>
-              <h3 className="mt-2 truncate font-medium group-hover:underline">{doc.title}</h3>
-              <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                <Badge variant="outline" className="text-xs">
-                  {doc.fileType.toUpperCase()}
-                </Badge>
-                <span>{doc.status === "processing" ? "—" : `${doc.chunkCount} chunks`}</span>
-                <span>{formatDate(doc.createdAt)}</span>
-              </div>
-            </Link>
+
+              <Link
+                href={`/knowledge/documents/${doc.id}`}
+                className="block"
+              >
+                <div className="flex items-start justify-between">
+                  <span className={cn("text-2xl", isMobile && "text-3xl")}>
+                    {FILE_TYPE_ICONS[doc.fileType] || "📄"}
+                  </span>
+                  <StatusBadge status={doc.status} />
+                </div>
+                <h3 className="mt-2 truncate font-medium group-hover:underline">{doc.title}</h3>
+                {/* Feature 4: Show more info on mobile */}
+                {isMobile && doc.description && (
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{doc.description}</p>
+                )}
+                <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                  <Badge variant="outline" className="text-xs">
+                    {doc.fileType.toUpperCase()}
+                  </Badge>
+                  <span>{doc.status === "processing" ? "—" : `${doc.chunkCount} chunks`}</span>
+                  <span>{formatDate(doc.createdAt)}</span>
+                </div>
+              </Link>
+
+              {/* Feature 4: Mobile action button */}
+              {isMobile && (
+                <div className="mt-2 flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="min-h-[44px] min-w-[44px] p-0"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setActionSheetDoc(doc);
+                    }}
+                    aria-label={`Opsi untuk ${doc.title}`}
+                  >
+                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                    </svg>
+                  </Button>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -566,7 +934,30 @@ export default function DocumentExplorer() {
           </Pagination>
         </div>
       )}
-      </div>
+
+      {/* Feature 4: Mobile FAB */}
+      {isMobile && (
+        <Link
+          href="/documents/upload"
+          className="fixed bottom-6 right-6 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
+          aria-label="Upload dokumen"
+        >
+          <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+        </Link>
+      )}
+
+      {/* Feature 4: Mobile Action Sheet */}
+      <ActionSheet
+        open={actionSheetDoc !== null}
+        onClose={() => setActionSheetDoc(null)}
+        documentId={actionSheetDoc?.id || ""}
+        documentTitle={actionSheetDoc?.title || ""}
+        onDelete={handleDelete}
+        onMove={handleMoveToFolder}
+      />
+    </div>
   );
 }
 
@@ -641,6 +1032,7 @@ function DocumentSkeleton({ viewMode }: { viewMode: ViewMode }) {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-[40px]"><Skeleton className="size-4" /></TableHead>
             <TableHead className="w-[300px]">Name</TableHead>
             <TableHead className="w-[80px]">Type</TableHead>
             <TableHead className="w-[100px]">Status</TableHead>
@@ -652,6 +1044,7 @@ function DocumentSkeleton({ viewMode }: { viewMode: ViewMode }) {
         <TableBody>
           {Array.from({ length: 5 }).map((_, i) => (
             <TableRow key={i}>
+              <TableCell><Skeleton className="size-4" /></TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <Skeleton className="size-6 rounded" />
