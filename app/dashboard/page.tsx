@@ -2,7 +2,9 @@ import { Suspense } from "react";
 import Link from "next/link";
 import DashboardShell from "@/components/layout/dashboard-shell";
 import { GreetingBar } from "@/components/dashboard/greeting-bar";
+import { HeroMetric } from "@/components/dashboard/hero-metric";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { SystemHealth } from "@/components/dashboard/system-health";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { RecentChats } from "@/components/dashboard/recent-chats";
@@ -11,14 +13,13 @@ import { UsageChart } from "@/components/dashboard/usage-chart";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import {
-  FileText,
-  Layers,
   MessageSquare,
+  Layers,
   Users,
   Upload,
-  FileCode,
-  Puzzle,
+  Settings,
   BarChart3,
+  FileText,
 } from "lucide-react";
 
 export const metadata = {
@@ -30,20 +31,99 @@ export default async function DashboardPage() {
   const userName = session?.user?.name || null;
 
   let documentCount = 0;
+  let totalChunks = 0;
+  let totalSessions = 0;
+  let totalMessages = 0;
+  let todaySessions = 0;
+  let todayMessages = 0;
+  let documentsByStatus = {} as Record<string, number>;
+
   try {
-    documentCount = await prisma.document.count();
-  } catch {
-    // Ignore — greeting will show without count
+    const [
+      docs,
+      chunks,
+      sessions,
+      messages,
+      statusGroups,
+    ] = await Promise.all([
+      prisma.document.count(),
+      prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*)::bigint as count FROM document_chunks`.catch(() => [{ count: BigInt(0) }]),
+      prisma.chatSession.count(),
+      prisma.chatMessage.count(),
+      prisma.document.groupBy({ by: ["status"], _count: { id: true } }),
+    ]);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [tSessions, tMessages] = await Promise.all([
+      prisma.chatSession.count({ where: { createdAt: { gte: today } } }),
+      prisma.chatMessage.count({ where: { createdAt: { gte: today } } }),
+    ]);
+
+    documentCount = docs;
+    totalChunks = Number(chunks[0]?.count ?? 0);
+    totalSessions = sessions;
+    totalMessages = messages;
+    todaySessions = tSessions;
+    todayMessages = tMessages;
+    documentsByStatus = Object.fromEntries(
+      statusGroups.map((d: { status: string; _count: { id: number } }) => [d.status, d._count.id])
+    );
+  } catch (error) {
+    console.error("Failed to fetch dashboard stats:", error);
   }
+
+  const readyDocs = documentsByStatus["ready"] ?? 0;
+  const processingDocs = documentsByStatus["processing"] ?? 0;
+  const hasDocuments = documentCount > 0;
+  const hasChats = totalSessions > 0;
+  const isNewUser = !hasDocuments && !hasChats;
 
   return (
     <DashboardShell title="Dashboard">
       <div className="space-y-6">
-        {/* E1: Greeting Bar — personalized welcome */}
-        <GreetingBar userName={userName} documentCount={documentCount} />
+        {/* E2: Greeting Bar — personalized with workspace context */}
+        <GreetingBar
+          userName={userName}
+          documentCount={documentCount}
+          workspaceName="Personal"
+        />
 
-        {/* Stat Cards Row — with aria-live for screen readers */}
-        <StatCardsRow />
+        {/* E2: Hero Metric — primary document count with progress bar */}
+        <HeroMetric
+          totalDocuments={documentCount}
+          readyDocuments={readyDocs}
+          processingDocuments={processingDocs}
+        />
+
+        {/* E2: Onboarding Checklist — only for new users */}
+        {isNewUser && (
+          <OnboardingChecklist hasDocuments={hasDocuments} hasChats={hasChats} />
+        )}
+
+        {/* E2: Stat Row V2 — 3 secondary metrics (not Documents) */}
+        <div role="region" aria-label="Statistik dashboard" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard
+            icon={<MessageSquare className="size-5" />}
+            label="Chat Sessions"
+            value={totalSessions}
+            trend={todaySessions > 0 ? todaySessions : undefined}
+            trendLabel="today"
+          />
+          <StatCard
+            icon={<Layers className="size-5" />}
+            label="Knowledge Chunks"
+            value={totalChunks}
+          />
+          <StatCard
+            icon={<Users className="size-5" />}
+            label="Total Messages"
+            value={totalMessages}
+            trend={todayMessages > 0 ? todayMessages : undefined}
+            trendLabel="today"
+          />
+        </div>
 
         {/* E1: 2-Column Grid — Recent Chats (55%) + Top Documents (45%) */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
@@ -62,13 +142,12 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
           {/* LEFT COLUMN — Quick Actions (60%) */}
           <div className="lg:col-span-3">
-            <QuickActions />
+            <QuickActions hasDocuments={hasDocuments} hasChats={hasChats} />
           </div>
 
           {/* RIGHT COLUMN — Activity Feed + System Health (40%) */}
           <div className="space-y-6 lg:col-span-2">
             <ActivityFeed />
-            {/* E1: System Health — compact when all ok */}
             <SystemHealth compact />
           </div>
         </div>
@@ -78,195 +157,77 @@ export default async function DashboardPage() {
 }
 
 /**
- * Quick Actions — 3×2 grid of action cards with icons, titles, and subtitle descriptions.
+ * E2: Quick Actions — contextual, user-centric labels.
+ * Adapts based on user state (new vs. power user).
  */
-function QuickActions() {
+function QuickActions({
+  hasDocuments,
+  hasChats,
+}: {
+  hasDocuments: boolean;
+  hasChats: boolean;
+}) {
+  // E2: Contextual actions based on user state
   const actions = [
+    ...(hasChats
+      ? [
+          {
+            label: "Lanjutkan Chat",
+            href: "/chat",
+            icon: MessageSquare,
+            primary: true,
+          },
+        ]
+      : [
+          {
+            label: "Chat Baru",
+            href: "/chat",
+            icon: MessageSquare,
+            primary: true,
+          },
+        ]),
     {
-      label: "New Chat",
-      href: "/chat",
-      icon: MessageSquare,
-      desc: "Start a fresh AI knowledge session",
-    },
-    {
-      label: "Upload File",
+      label: hasDocuments ? "Upload Lagi" : "Upload Dokumen",
       href: "/documents/upload",
       icon: Upload,
-      desc: "Support PDF, TXT or Markdown",
+      primary: false,
     },
     {
-      label: "Manage API",
-      href: "/developers",
-      icon: FileCode,
-      desc: "Configure access and keys",
+      label: "Pengaturan",
+      href: "/settings",
+      icon: Settings,
+      primary: false,
     },
     {
-      label: "Optimization",
-      href: "/knowledge/chunks",
-      icon: Layers,
-      desc: "Fine-tune your knowledge chunks",
-    },
-    {
-      label: "Connect Apps",
-      href: "/settings/widget",
-      icon: Puzzle,
-      desc: "Sync with external services",
-    },
-    {
-      label: "Reports",
+      label: "Analitik",
       href: "/analytics/usage",
       icon: BarChart3,
-      desc: "View usage analytics",
+      primary: false,
     },
   ];
 
   return (
     <div role="region" aria-label="Aksi cepat" className="bg-card border border-border/20 rounded-lg p-5">
-      <h3 className="text-base font-semibold mb-4">Quick Actions</h3>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <h3 className="text-base font-semibold mb-4">Aksi Cepat</h3>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {actions.map((action) => {
           const Icon = action.icon;
           return (
             <Link
-              key={action.href}
+              key={action.href + action.label}
               href={action.href}
-              className="bg-card border border-border/20 rounded-lg p-4 transition-colors hover:border-primary/30 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              className={`flex items-center gap-3 p-3 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                action.primary
+                  ? "bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20"
+                  : "bg-card border border-border/20 hover:border-primary/30 hover:bg-accent/50"
+              }`}
             >
-              <Icon className="size-5 text-muted-foreground mb-2" />
-              <p className="text-sm font-medium">{action.label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{action.desc}</p>
+              <Icon className="size-5 flex-shrink-0" />
+              <span className="text-sm font-medium">{action.label}</span>
             </Link>
           );
         })}
       </div>
-    </div>
-  );
-}
-
-/**
- * Stat cards row — fetches aggregated stats and renders 4 cards.
- * Wrapped in Suspense for streaming SSR.
- */
-function StatCardsRow() {
-  return (
-    <Suspense
-      fallback={
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <StatCard
-              key={i}
-              icon={<FileText className="size-5" />}
-              label="—"
-              value="—"
-              loading
-            />
-          ))}
-        </div>
-      }
-    >
-      <StatCardsRowInner />
-    </Suspense>
-  );
-}
-
-async function StatCardsRowInner() {
-  let stats = {
-    totalDocuments: 0,
-    totalChunks: 0,
-    totalSessions: 0,
-    totalMessages: 0,
-    todaySessions: 0,
-    todayMessages: 0,
-    documentsByStatus: {} as Record<string, number>,
-  };
-
-  try {
-    const [
-      totalDocuments,
-      totalChunks,
-      totalSessions,
-      totalMessages,
-      documentsByStatus,
-    ] = await Promise.all([
-      prisma.document.count(),
-      prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*)::bigint as count FROM document_chunks`.catch(() => [{ count: BigInt(0) }]),
-      prisma.chatSession.count(),
-      prisma.chatMessage.count(),
-      prisma.document.groupBy({
-        by: ["status"],
-        _count: { id: true },
-      }),
-    ]);
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const [todaySessions, todayMessages] = await Promise.all([
-      prisma.chatSession.count({
-        where: { createdAt: { gte: today } },
-      }),
-      prisma.chatMessage.count({
-        where: { createdAt: { gte: today } },
-      }),
-    ]);
-
-    stats = {
-      totalDocuments,
-      totalChunks: Number(totalChunks[0]?.count ?? 0),
-      totalSessions,
-      totalMessages,
-      todaySessions,
-      todayMessages,
-      documentsByStatus: Object.fromEntries(
-        documentsByStatus.map((d: { status: string; _count: { id: number } }) => [d.status, d._count.id])
-      ),
-    };
-  } catch (error) {
-    console.error("Failed to fetch dashboard stats:", error);
-  }
-
-  const readyDocs = stats.documentsByStatus["ready"] ?? 0;
-  const processingDocs = stats.documentsByStatus["processing"] ?? 0;
-
-  return (
-    <div role="region" aria-label="Statistik dashboard" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <StatCard
-        icon={<FileText className="size-5" />}
-        label="Documents"
-        value={stats.totalDocuments}
-        trend={
-          stats.totalDocuments > 0
-            ? Math.round((readyDocs / Math.max(stats.totalDocuments, 1)) * 100) - 100
-            : undefined
-        }
-        trendLabel={
-          processingDocs > 0 ? `${processingDocs} processing` : undefined
-        }
-      />
-      <StatCard
-        icon={<Layers className="size-5" />}
-        label="Knowledge Chunks"
-        value={stats.totalChunks}
-        trend={undefined}
-      />
-      <StatCard
-        icon={<MessageSquare className="size-5" />}
-        label="Chat Sessions"
-        value={stats.totalSessions}
-        trend={
-          stats.todaySessions > 0 ? stats.todaySessions : undefined
-        }
-        trendLabel="today"
-      />
-      <StatCard
-        icon={<Users className="size-5" />}
-        label="Total Messages"
-        value={stats.totalMessages}
-        trend={
-          stats.todayMessages > 0 ? stats.todayMessages : undefined
-        }
-        trendLabel="today"
-      />
     </div>
   );
 }

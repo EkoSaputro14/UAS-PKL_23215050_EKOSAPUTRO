@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 interface GreetingBarProps {
   userName?: string | null;
   documentCount?: number;
+  workspaceName?: string | null;
   onSearchOpen?: () => void;
 }
 
@@ -19,6 +20,7 @@ function getTimeBasedGreeting(): string {
 export function GreetingBar({
   userName,
   documentCount,
+  workspaceName,
   onSearchOpen,
 }: GreetingBarProps) {
   const greeting = getTimeBasedGreeting();
@@ -36,9 +38,16 @@ export function GreetingBar({
             {greeting}, {displayName} 👋
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {documentCount !== undefined
-              ? `${documentCount} dokumen tersedia`
-              : "Selamat datang di Mimotes"}
+            {workspaceName && (
+              <span className="font-medium">{workspaceName}</span>
+            )}
+            {workspaceName && documentCount !== undefined && " · "}
+            {documentCount !== undefined && (
+              <span>{documentCount} dokumen tersedia</span>
+            )}
+            {!workspaceName && documentCount === undefined && (
+              <span>Selamat datang di Mimotes</span>
+            )}
           </p>
         </div>
         {onSearchOpen && (
