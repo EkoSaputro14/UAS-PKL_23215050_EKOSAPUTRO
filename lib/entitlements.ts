@@ -15,6 +15,8 @@ export const ALL_FEATURES = [
   "audit_logs",
   "sso",
   "priority_support",
+  "lead_capture",
+  "lead_notifications",
 ] as const;
 
 export type FeatureName = (typeof ALL_FEATURES)[number];
@@ -36,6 +38,8 @@ const DEFAULT_FEATURES: Record<string, FeatureName[]> = {
     "custom_branding",
     "team_members",
     "priority_support",
+    "lead_capture",
+    "lead_notifications",
   ],
   enterprise: [...ALL_FEATURES],
 };
@@ -255,6 +259,8 @@ export function getFeatureDisplayName(feature: FeatureName): string {
     audit_logs: "Audit Logs",
     sso: "Single Sign-On (SSO)",
     priority_support: "Priority Support",
+    lead_capture: "Lead Capture",
+    lead_notifications: "Lead Notifications",
   };
   return names[feature] || feature;
 }

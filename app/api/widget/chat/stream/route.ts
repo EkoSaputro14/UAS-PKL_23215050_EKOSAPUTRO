@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { prisma, setWorkspaceContext } from "@/lib/prisma";
-import { getWidgetByPublicKey, validateWidgetOrigin, validateMessageLength, buildWidgetCorsHeaders } from "@/lib/widget";
+import { getWidgetByPublicKey, validateWidgetOrigin, validateMessageLength, buildWidgetCorsHeaders, saveLeadData, updateLeadScore } from "@/lib/widget";
 import { streamRAGResponse } from "@/lib/rag/chain";
+import { detectIntent, calculateLeadScore, shouldAutoTrigger, getAutoTriggerPrompt } from "@/lib/lead-intent";
 
 // Rate limiter: per public key + per IP (dual-layer)
 const keyRateLimit = new Map<string, { count: number; resetAt: number }>();
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { publicKey, message, conversationId, visitorId } = body;
+    const { publicKey, message, conversationId, visitorId, lead } = body;
 
     if (!publicKey || !message) {
       return Response.json(
@@ -123,6 +124,18 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // ── Save lead data if provided ──
+    if (lead) {
+      await saveLeadData(conv.id, lead);
+    }
+
+    // ── Intent detection & lead scoring ──
+    const messageCount = await prisma.widgetMessage.count({ where: { conversationId: conv.id } });
+    const intent = detectIntent(message);
+    const hasLead = !!(conv.leadEmail || lead);
+    const score = calculateLeadScore(hasLead, intent, messageCount);
+    await updateLeadScore(conv.id, score);
+
     // ── Save user message ──
     await prisma.widgetMessage.create({
       data: {
@@ -140,6 +153,7 @@ export async function POST(request: NextRequest) {
     const corsHeaders = buildWidgetCorsHeaders(origin, allowedDomains);
     const encoder = new TextEncoder();
     const conversationDone = conv;
+    const doAutoTrigger = shouldAutoTrigger(widget.leadCaptureEnabled || false, widget.autoTriggerMessages || 0, hasLead, messageCount);
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -183,6 +197,13 @@ export async function POST(request: NextRequest) {
               })),
             });
           }
+        }
+
+        // ── Auto-trigger lead capture prompt ──
+        if (doAutoTrigger) {
+          const triggerPrompt = getAutoTriggerPrompt();
+          fullResponse += "\n\n" + triggerPrompt;
+          sendSSE("message", { type: "chunk", content: "\n\n" + triggerPrompt });
         }
 
         const assistantMsgId = `msg_${Date.now()}`;

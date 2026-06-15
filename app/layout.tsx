@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+import Providers from "@/components/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -39,7 +40,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <TooltipProvider delay={300}>{children}</TooltipProvider>
+          <Providers>
+            <TooltipProvider delay={300}>{children}</TooltipProvider>
+          </Providers>
           <Toaster
             position="top-right"
             toastOptions={{

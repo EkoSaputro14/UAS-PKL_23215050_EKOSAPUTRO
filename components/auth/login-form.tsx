@@ -28,7 +28,7 @@ export default function LoginForm() {
       if (result?.error) {
         toast.error("Email atau password salah");
       } else {
-        router.push("/documents");
+        router.push("/dashboard");
         router.refresh();
       }
     } catch {
@@ -46,7 +46,7 @@ export default function LoginForm() {
           Masuk untuk mengelola dokumen
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} method="post" action="#" className="space-y-5">
           <div>
             <label
               htmlFor="email"

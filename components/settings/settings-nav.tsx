@@ -13,6 +13,7 @@ import {
   Settings,
   CreditCard,
   Shield,
+  Users,
 } from "lucide-react";
 
 interface NavItem {
@@ -61,6 +62,11 @@ const NAV_ITEMS: NavItem[] = [
     label: "Widget",
     href: "/settings/widget",
     icon: <Settings className="h-4 w-4" />,
+  },
+  {
+    label: "Leads",
+    href: "/settings/leads",
+    icon: <Users className="h-4 w-4" />,
   },
   {
     label: "Billing",

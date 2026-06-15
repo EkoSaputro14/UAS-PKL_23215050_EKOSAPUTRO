@@ -17,7 +17,9 @@ interface Widget {
   avatarUrl: string | null;
   welcomeMessage: string;
   position: string;
-  _count?: { conversations: number };
+  leadCaptureEnabled: boolean;
+  leadFields: Array<{ name: string; label: string; type: string; required: boolean }>;
+  _count?: { conversations: number; widgetConversations?: number };
 }
 
 export default function WidgetSettingsForm() {
@@ -29,6 +31,13 @@ export default function WidgetSettingsForm() {
   const [newWidgetSlug, setNewWidgetSlug] = useState("");
   const [embedCode, setEmbedCode] = useState("");
   const [saved, setSaved] = useState(false);
+  const [leadCaptureEnabled, setLeadCaptureEnabled] = useState(false);
+  const [leadFields, setLeadFields] = useState([
+    { name: "name", label: "Name", type: "text", required: true },
+    { name: "email", label: "Email", type: "email", required: true },
+    { name: "whatsapp", label: "WhatsApp", type: "tel", required: false },
+  ]);
+  const [leadCount, setLeadCount] = useState(0);
 
   useEffect(() => { fetchWidgets(); }, []);
 
@@ -64,6 +73,49 @@ export default function WidgetSettingsForm() {
   function generateEmbedCode(widget: Widget) {
     const baseUrl = window.location.origin;
     return `<script src="${baseUrl}/widget.js" data-key="${widget.publicKey}"></script>`;
+  }
+
+  function selectWidget(widget: Widget) {
+    setSelectedWidget(widget);
+    setEmbedCode(generateEmbedCode(widget));
+    setSaved(false);
+    setLeadCaptureEnabled(widget.leadCaptureEnabled ?? false);
+    if (widget.leadFields && widget.leadFields.length > 0) {
+      setLeadFields(widget.leadFields);
+    }
+    // Fetch lead count for this widget
+    fetchLeadCount(widget.id);
+  }
+
+  async function fetchLeadCount(widgetId: string) {
+    try {
+      const res = await fetch(`/api/widget/leads?widgetId=${widgetId}&perPage=1`);
+      const data = await res.json();
+      setLeadCount(data.total || 0);
+    } catch {
+      setLeadCount(0);
+    }
+  }
+
+  async function saveLeadCapture() {
+    if (!selectedWidget) return;
+    try {
+      const res = await fetch(`/api/widgets/${selectedWidget.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadCaptureEnabled,
+          leadFields,
+        }),
+      });
+      if (res.ok) {
+        setSaved(true);
+        fetchWidgets();
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch (error) {
+      console.error("Failed to save lead capture settings:", error);
+    }
   }
 
   return (
@@ -112,7 +164,7 @@ export default function WidgetSettingsForm() {
             {widgets.map((w) => (
               <div
                 key={w.id}
-                onClick={() => { setSelectedWidget(w); setEmbedCode(generateEmbedCode(w)); setSaved(false); }}
+                onClick={() => selectWidget(w)}
                 className={`cursor-pointer p-4 rounded-lg border transition-colors ${
                   selectedWidget?.id === w.id
                     ? "bg-blue-900/30 border-blue-600"
@@ -220,6 +272,90 @@ export default function WidgetSettingsForm() {
               placeholder="example.com, *.example.com"
               className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-white text-sm"
             />
+          </div>
+
+          {/* Lead Capture */}
+          <div className="border-t border-gray-700 pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h4 className="text-sm font-medium text-white">Lead Capture</h4>
+                <p className="text-xs text-gray-400 mt-1">
+                  Collect visitor information before or during conversations.
+                </p>
+              </div>
+              <button
+                onClick={() => setLeadCaptureEnabled(!leadCaptureEnabled)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  leadCaptureEnabled ? "bg-blue-600" : "bg-gray-600"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    leadCaptureEnabled ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {leadCaptureEnabled && (
+              <div className="space-y-3 bg-gray-900/50 rounded-lg p-4">
+                <p className="text-xs text-gray-400 mb-3">
+                  Configure which fields to collect. Toggling &quot;Required&quot; makes the field mandatory.
+                </p>
+                {leadFields.map((field, idx) => (
+                  <div
+                    key={field.name}
+                    className="flex items-center justify-between py-2 border-b border-gray-700 last:border-0"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-white font-medium">
+                        {field.label}
+                      </span>
+                      <span className="text-xs text-gray-500 font-mono">
+                        ({field.type})
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const updated = [...leadFields];
+                        updated[idx] = { ...updated[idx], required: !updated[idx].required };
+                        setLeadFields(updated);
+                      }}
+                      className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                        field.required
+                          ? "bg-blue-600/20 text-blue-400 border border-blue-600/40"
+                          : "bg-gray-700 text-gray-400 border border-gray-600"
+                      }`}
+                    >
+                      {field.required ? "Required" : "Optional"}
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={saveLeadCapture}
+                  className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium"
+                >
+                  {saved ? "✅ Saved!" : "Save Lead Capture Settings"}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Leads Quick Link */}
+          <div className="border-t border-gray-700 pt-4">
+            <a
+              href="/settings/leads"
+              className="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 hover:bg-gray-900 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                <div>
+                  <p className="text-sm text-white font-medium">View All Leads</p>
+                  <p className="text-xs text-gray-400">{leadCount} leads captured</p>
+                </div>
+              </div>
+              <span className="text-gray-400 group-hover:text-white transition-colors">→</span>
+            </a>
           </div>
         </section>
       )}

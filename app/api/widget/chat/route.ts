@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { prisma, setWorkspaceContext } from "@/lib/prisma";
-import { getWidgetByPublicKey, validateWidgetOrigin, validateMessageLength, buildWidgetCorsHeaders } from "@/lib/widget";
+import { getWidgetByPublicKey, validateWidgetOrigin, validateMessageLength, buildWidgetCorsHeaders, saveLeadData, updateLeadScore } from "@/lib/widget";
 import { generateRAGResponse } from "@/lib/rag/chain";
+import { detectIntent, calculateLeadScore, shouldAutoTrigger, getAutoTriggerPrompt } from "@/lib/lead-intent";
 
 // Rate limiter: per public key + per IP (dual-layer)
 const keyRateLimit = new Map<string, { count: number; resetAt: number }>();
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { publicKey, message, conversationId, visitorId } = body;
+    const { publicKey, message, conversationId, visitorId, lead } = body;
 
     if (!publicKey || !message) {
       return Response.json(
@@ -130,6 +131,43 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // ── Save lead data if provided ──
+    if (lead) {
+      await saveLeadData(conv.id, lead);
+    }
+
+    // ── Intent detection & lead scoring ──
+    const messageCount = await prisma.widgetMessage.count({ where: { conversationId: conv.id } });
+    const intent = detectIntent(message);
+    const hasLead = !!(conv.leadEmail || lead);
+    const score = calculateLeadScore(hasLead, intent, messageCount);
+    await updateLeadScore(conv.id, score);
+
+    // ── Persist intent on conversation ──
+    if (intent) {
+      await prisma.widgetConversation.update({
+        where: { id: conv.id },
+        data: { leadIntent: intent },
+      });
+    }
+
+    // ── Trigger notification on high lead ──
+    if (score === "high" && hasLead) {
+      const { sendLeadNotification } = await import("@/lib/notifications");
+      await sendLeadNotification("high_lead", {
+        conversationId: conv.id,
+        workspaceId: widget.workspaceId,
+        leadName: conv.leadName || lead?.name || null,
+        leadEmail: conv.leadEmail || lead?.email || null,
+        leadWhatsApp: conv.leadWhatsApp || lead?.whatsapp || null,
+        leadScore: score,
+        leadStatus: conv.leadStatus || "new",
+        leadIntent: intent,
+        widgetName: widget.name,
+        messageCount: messageCount + 1,
+      }).catch((err) => console.error("[Notification] Failed:", err));
+    }
+
     // ── Save user message ──
     await prisma.widgetMessage.create({
       data: {
@@ -146,14 +184,20 @@ export async function POST(request: NextRequest) {
     const response = ragResult.answer;
     const latencyMs = Date.now() - startTime;
 
+    // ── Auto-trigger lead capture prompt ──
+    let finalResponse = response;
+    if (shouldAutoTrigger(widget.leadCaptureEnabled || false, widget.autoTriggerMessages || 0, hasLead, messageCount)) {
+      finalResponse = response + "\n\n" + getAutoTriggerPrompt();
+    }
+
     // ── Save assistant message ──
     await prisma.widgetMessage.create({
       data: {
         conversationId: conv.id,
         workspaceId: widget.workspaceId,
         role: "assistant",
-        content: response,
-        tokensUsed: message.split(" ").length + response.split(" ").length,
+        content: finalResponse,
+        tokensUsed: message.split(" ").length + finalResponse.split(" ").length,
       },
     });
 
@@ -162,7 +206,7 @@ export async function POST(request: NextRequest) {
 
     return Response.json({
       conversationId: conv.id,
-      message: response,
+      message: finalResponse,
       latencyMs,
     }, {
       headers: corsHeaders,

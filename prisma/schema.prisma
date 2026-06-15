@@ -66,6 +66,8 @@ model Workspace {
   widgetMessages    WidgetMessage[]
   auditLogs         AuditLog[]
 
+  notificationConfigs NotificationConfig[]
+  notificationLogs   NotificationLog[]
   @@map("workspaces")
 }
 
@@ -477,6 +479,9 @@ model Widget {
   welcomeMessage  String   @default("Hi! How can I help you?") @map("welcome_message") @db.VarChar(500)
   position        String   @default("bottom-right") @map("position") @db.VarChar(20)
   quickReplies    String[] @default([]) @map("quick_replies")
+  leadCaptureEnabled Boolean @default(false) @map("lead_capture_enabled")
+  leadFields         Json    @default("[]") @map("lead_fields")
+  autoTriggerMessages Int @default(0) @map("auto_trigger_messages")
 
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -500,6 +505,13 @@ model WidgetConversation {
   status      String   @default("active") @db.VarChar(20)
   startedAt   DateTime @default(now()) @map("started_at")
   endedAt     DateTime? @map("ended_at")
+  leadName     String?  @map("lead_name") @db.VarChar(200)
+  leadEmail    String?  @map("lead_email") @db.VarChar(300)
+  leadWhatsApp String?  @map("lead_whatsapp") @db.VarChar(30)
+  leadData     Json?    @map("lead_data")
+  leadScore  String? @default("low") @map("lead_score") @db.VarChar(20)
+  leadStatus String? @default("new") @map("lead_status") @db.VarChar(20)
+  leadIntent String? @map("lead_intent") @db.VarChar(30)
 
   widget    Widget           @relation(fields: [widgetId], references: [id], onDelete: Cascade)
   workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -677,4 +689,46 @@ model McpServer {
 
   @@index([workspaceId], map: "mcp_servers_workspace_id_idx")
   @@map("mcp_servers")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model NotificationConfig {
+  id              String   @id @default(uuid())
+  workspaceId     String   @unique @map("workspace_id")
+  emailEnabled    Boolean  @default(false) @map("email_enabled")
+  emailAddress    String?  @map("email_address") @db.VarChar(300)
+  telegramEnabled Boolean  @default(false) @map("telegram_enabled")
+  telegramBotToken String? @map("telegram_bot_token") @db.VarChar(200)
+  telegramChatId  String?  @map("telegram_chat_id") @db.VarChar(50)
+  discordEnabled  Boolean  @default(false) @map("discord_enabled")
+  discordWebhookUrl String? @map("discord_webhook_url") @db.VarChar(500)
+  notifyOnHighLead   Boolean @default(true) @map("notify_on_high_lead")
+  notifyOnConverted  Boolean @default(true) @map("notify_on_converted")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("notification_configs")
+}
+
+model NotificationLog {
+  id              String   @id @default(uuid())
+  workspaceId     String   @map("workspace_id")
+  conversationId  String?  @map("conversation_id")
+  channel         String   @db.VarChar(20)
+  eventType       String   @map("event_type") @db.VarChar(50)
+  recipientEmail  String?  @map("recipient_email") @db.VarChar(300)
+  status          String   @default("sent") @db.VarChar(20)
+  errorMessage    String?  @map("error_message")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@index([conversationId])
+  @@map("notification_logs")
 }

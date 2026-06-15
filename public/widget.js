@@ -152,11 +152,12 @@
 
     els = { container: container, chatWindow: chatWindow, messages: messages, input: input,
       sendBtn: sendBtn, closeBtn: closeBtn, launcher: launcher, loading: loading,
-      historyBanner: historyBanner, historyBtn: historyBtn };
+      historyBanner: historyBanner, historyBtn: historyBtn, inputArea: inputArea };
 
     addMessage(messages, theme.welcomeMessage || "Hi! How can I help you?", "assistant", theme);
     bindEvents(theme);
     checkConversationHistory();
+    checkLeadCapture(config);
   }
 
   function bindEvents(theme) {
@@ -237,6 +238,91 @@
       }).catch(function() {});
   }
 
+  // ── Lead Capture ──
+  function checkLeadCapture(config) {
+    if (!config.leadCaptureEnabled || !config.leadFields || !config.leadFields.length) return;
+    try {
+      var storedLead = sessionStorage.getItem('mimo_lead');
+      if (storedLead) {
+        CONFIG.leadData = JSON.parse(storedLead);
+      } else {
+        showLeadForm(config.leadFields);
+      }
+    } catch (e) { showLeadForm(config.leadFields); }
+  }
+
+  function showLeadForm(fields) {
+    els.inputArea.style.display = 'none';
+
+    var form = document.createElement('div');
+    form.className = 'mimo-lead-form';
+    form.setAttribute('role', 'form');
+    form.setAttribute('aria-label', 'Contact information');
+    form.style.cssText = 'padding:16px 16px 12px;border-top:1px solid #eee';
+
+    var title = document.createElement('p');
+    title.textContent = 'Please share your contact info to start chatting:';
+    title.style.cssText = 'margin:0 0 12px;font-size:14px;color:' + (CONFIG.theme.textColor || '#333');
+    form.appendChild(title);
+
+    var inputs = {};
+
+    fields.forEach(function(field) {
+      var label = document.createElement('label');
+      label.textContent = field.label + (field.required ? ' *' : '');
+      label.style.cssText = 'display:block;margin-bottom:4px;font-size:13px;color:' + (CONFIG.theme.textColor || '#333');
+
+      var input = document.createElement('input');
+      input.type = field.type || 'text';
+      input.name = field.name;
+      input.placeholder = field.label;
+      input.required = !!field.required;
+      input.setAttribute('aria-label', field.label);
+      input.style.cssText = 'width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;margin-bottom:8px;font-size:14px;box-sizing:border-box';
+
+      inputs[field.name] = input;
+      form.appendChild(label);
+      form.appendChild(input);
+    });
+
+    var submitBtn = document.createElement('button');
+    submitBtn.textContent = 'Start Chat';
+    submitBtn.type = 'button';
+    submitBtn.setAttribute('aria-label', 'Start chat with contact info');
+    submitBtn.style.cssText = 'width:100%;padding:10px;background:' + (CONFIG.theme.primaryColor || '#6366f1') +
+      ';color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600';
+
+    submitBtn.onclick = function() {
+      var leadData = {};
+      var valid = true;
+
+      fields.forEach(function(field) {
+        var value = inputs[field.name].value.trim();
+        if (field.required && !value) {
+          valid = false;
+          inputs[field.name].style.borderColor = '#ef4444';
+        } else {
+          inputs[field.name].style.borderColor = '#ddd';
+        }
+        leadData[field.name] = value;
+      });
+
+      if (!valid) return;
+
+      CONFIG.leadData = leadData;
+      try { sessionStorage.setItem('mimo_lead', JSON.stringify(leadData)); } catch (e) {}
+
+      form.remove();
+      els.inputArea.style.display = '';
+      els.input.focus();
+
+      fire('onLeadCapture', leadData);
+    };
+
+    form.appendChild(submitBtn);
+    els.messages.parentNode.insertBefore(form, els.inputArea);
+  }
+
   // ── Send Message (SSE streaming with fallback) ──
   function sendMessage(theme) {
     var text = els.input.value.trim();
@@ -250,6 +336,7 @@
     var body = JSON.stringify({
       publicKey: CONFIG.publicKey, message: text,
       conversationId: CONFIG.conversationId, visitorId: CONFIG.visitorId,
+      lead: CONFIG.leadData || null,
     });
 
     fire("onMessage", { role: "user", content: text });
@@ -361,20 +448,104 @@
   // ── Sources display ──
   function showSources(sources, theme) {
     if (!sources || !sources.length) return;
-    var div = document.createElement("div");
-    div.setAttribute("role", "list"); div.setAttribute("aria-label", "Sources");
-    div.style.cssText = "margin-top:8px;font-size:12px;color:#666";
-    var lbl = document.createElement("div");
-    lbl.style.fontWeight = "600"; lbl.style.marginBottom = "4px"; lbl.textContent = "Sources:";
-    div.appendChild(lbl);
+    var container = document.createElement("div");
+    container.setAttribute("role", "list");
+    container.setAttribute("aria-label", "Sources");
+    container.style.cssText = "margin-top:10px;display:flex;flex-direction:column;gap:6px;";
+
+    // Header
+    var header = document.createElement("div");
+    header.style.cssText = "font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;";
+    header.textContent = "Sources";
+    container.appendChild(header);
+
     for (var i = 0; i < sources.length; i++) {
-      var s = document.createElement("div");
-      s.setAttribute("role", "listitem");
-      var sim = sources[i].similarity ? " (" + Math.round(sources[i].similarity * 100) + "% match)" : "";
-      s.textContent = "\u2022 " + (sources[i].documentTitle || "Document") + sim;
-      div.appendChild(s);
+      (function(idx) {
+        var src = sources[idx];
+        var card = document.createElement("div");
+        card.setAttribute("role", "listitem");
+        card.style.cssText = "background:#f8f9fa;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;cursor:pointer;transition:border-color 0.15s;";
+        card.onmouseenter = function() { card.style.borderColor = theme.primaryColor + "40"; };
+        card.onmouseleave = function() { card.style.borderColor = "#e5e7eb"; };
+
+        // Header row
+        var headerRow = document.createElement("div");
+        headerRow.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:8px 10px;min-height:44px;";
+
+        // Left: index + title
+        var left = document.createElement("div");
+        left.style.cssText = "display:flex;align-items:center;gap:8px;min-width:0;flex:1;";
+
+        // Index badge
+        var badge = document.createElement("span");
+        badge.style.cssText = "display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:4px;background:" + theme.primaryColor + "15;color:" + theme.primaryColor + ";font-size:10px;font-weight:700;flex-shrink:0;";
+        badge.textContent = idx + 1;
+        left.appendChild(badge);
+
+        // File type icon
+        var fileType = (src.metadata && src.metadata.fileType) || "";
+        var icons = {pdf:"\uD83D\uDCD5", docx:"\uD83D\uDCD8", txt:"\uD83D\uDCDD", csv:"\uD83D\uDCCA", xlsx:"\uD83D\uDCD7", url:"\uD83D\uDD17"};
+        var icon = document.createElement("span");
+        icon.style.cssText = "font-size:14px;flex-shrink:0;";
+        icon.textContent = icons[fileType] || "\uD83D\uDCC4";
+        left.appendChild(icon);
+
+        // Title
+        var title = document.createElement("span");
+        title.style.cssText = "font-size:12px;font-weight:500;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+        title.textContent = (src.metadata && src.metadata.title) || (src.metadata && src.metadata.filename) || "Document";
+        left.appendChild(title);
+
+        headerRow.appendChild(left);
+
+        // Right: similarity badge + expand arrow
+        var right = document.createElement("div");
+        right.style.cssText = "display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:8px;";
+
+        // Similarity badge
+        if (src.similarity) {
+          var simPct = Math.round(src.similarity * 100);
+          var simColor = simPct >= 80 ? "#059669" : simPct >= 60 ? "#d97706" : "#dc2626";
+          var simBg = simPct >= 80 ? "#ecfdf5" : simPct >= 60 ? "#fffbeb" : "#fef2f2";
+          var simBadge = document.createElement("span");
+          simBadge.style.cssText = "font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;background:" + simBg + ";color:" + simColor + ";";
+          simBadge.textContent = simPct + "%";
+          right.appendChild(simBadge);
+        }
+
+        // Expand arrow
+        var arrow = document.createElement("span");
+        arrow.style.cssText = "font-size:12px;color:#9ca3af;transition:transform 0.2s;";
+        arrow.textContent = "\u25BC";
+        right.appendChild(arrow);
+
+        headerRow.appendChild(right);
+        card.appendChild(headerRow);
+
+        // Content preview (hidden by default)
+        var preview = document.createElement("div");
+        preview.style.cssText = "display:none;padding:0 10px 10px;";
+        var content = document.createElement("p");
+        content.style.cssText = "font-size:11px;line-height:1.5;color:#6b7280;margin:0;word-break:break-word;";
+        var previewText = (src.content || "").substring(0, 200);
+        content.textContent = previewText + (src.content && src.content.length > 200 ? "..." : "");
+        preview.appendChild(content);
+        card.appendChild(preview);
+
+        // Toggle expand
+        var expanded = false;
+        card.onclick = function() {
+          expanded = !expanded;
+          preview.style.display = expanded ? "block" : "none";
+          arrow.style.transform = expanded ? "rotate(180deg)" : "rotate(0deg)";
+          card.style.borderColor = expanded ? theme.primaryColor + "60" : "#e5e7eb";
+        };
+
+        container.appendChild(card);
+      })(i);
     }
-    els.messages.appendChild(div);
+
+    els.messages.appendChild(container);
     els.messages.scrollTop = els.messages.scrollHeight;
   }
 
@@ -407,7 +578,7 @@
 
   // ── SDK V2 Global Object ──
   window.MimoNotesWidget = {
-    onOpen: null, onClose: null, onMessage: null, onError: null,
+    onOpen: null, onClose: null, onMessage: null, onError: null, onLeadCapture: null,
     open: function() { if (els.launcher) openChat(); },
     close: function() { if (els.chatWindow) closeChat(); },
     destroy: function() {

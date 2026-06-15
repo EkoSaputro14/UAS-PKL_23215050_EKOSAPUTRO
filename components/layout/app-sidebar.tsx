@@ -47,7 +47,7 @@ const coreNav: NavItem[] = [
   { label: "Chat", href: "/chat", icon: MessageSquare },
   { label: "Documents", href: "/knowledge/documents", icon: FileText },
   { label: "Knowledge", href: "/knowledge/search", icon: BookOpen },
-  { label: "Analytics", href: "/analytics/usage", icon: BarChart3 },
+  { label: "Analytics", href: "/analytics/leads", icon: BarChart3 },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 

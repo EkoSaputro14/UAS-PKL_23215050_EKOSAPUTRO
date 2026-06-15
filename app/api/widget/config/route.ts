@@ -41,6 +41,9 @@ export async function GET(request: NextRequest) {
       position: widget.position,
       quickReplies: widget.quickReplies || [],
     },
+    leadCaptureEnabled: widget.leadCaptureEnabled,
+    leadFields: widget.leadFields || [],
+    autoTriggerMessages: widget.autoTriggerMessages || 0,
   }, {
     headers: corsHeaders,
   });

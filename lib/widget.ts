@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { LeadScore, LeadStatus } from "@/lib/lead-intent";
 import crypto from "crypto";
 
 // ============================================================
@@ -52,9 +53,11 @@ export async function createWidget(
   workspaceId: string,
   name: string,
   slug: string,
-  theme?: Partial<WidgetTheme>
+  theme?: Partial<WidgetTheme> & { leadCaptureEnabled?: boolean; leadFields?: any[] }
 ) {
   const { publicKey, secretKey } = generateWidgetKeys();
+
+  const { leadCaptureEnabled, leadFields, ...themeData } = theme || {};
 
   return prisma.widget.create({
     data: {
@@ -64,7 +67,9 @@ export async function createWidget(
       publicKey,
       secretKey,
       ...DEFAULT_THEME,
-      ...theme,
+      ...themeData,
+      ...(leadCaptureEnabled !== undefined ? { leadCaptureEnabled } : {}),
+      ...(leadFields !== undefined ? { leadFields } : {}),
     },
   });
 }
@@ -90,6 +95,9 @@ export async function getWidgetByPublicKey(publicKey: string) {
       quickReplies: true,
       allowedDomains: true,
       workspaceId: true,
+      leadCaptureEnabled: true,
+      leadFields: true,
+      autoTriggerMessages: true,
     },
   });
 }
@@ -153,6 +161,8 @@ export async function listWidgets(workspaceId: string) {
       position: true,
       quickReplies: true,
       createdAt: true,
+      leadCaptureEnabled: true,
+      autoTriggerMessages: true,
       _count: { select: { conversations: true } },
     },
   });
@@ -176,6 +186,9 @@ export async function updateWidget(
     welcomeMessage: string;
     position: string;
     quickReplies: string[];
+    leadCaptureEnabled: boolean;
+    leadFields: any[];
+    autoTriggerMessages: number;
   }>
 ) {
   return prisma.widget.updateMany({
@@ -296,4 +309,130 @@ export function widgetResponse(
   const headers = { ...corsHeaders, ...existingHeaders };
 
   return Response.json(body, { ...init, headers });
+}
+
+// ============================================================
+// Lead Capture
+// ============================================================
+
+/**
+ * Save lead data to a widget conversation.
+ */
+export async function saveLeadData(
+  conversationId: string,
+  leadData: { name?: string; email?: string; whatsapp?: string; [key: string]: unknown }
+) {
+  return prisma.widgetConversation.update({
+    where: { id: conversationId },
+    data: {
+      leadName: leadData.name || null,
+      leadEmail: leadData.email || null,
+      leadWhatsApp: leadData.whatsapp || null,
+      leadData: leadData as any,
+    },
+  });
+}
+
+/**
+ * Get leads for a workspace/widget with pagination.
+ */
+export async function getLeads(
+  workspaceId: string,
+  widgetId?: string,
+  page: number = 1,
+  perPage: number = 20
+) {
+  const where: any = {
+    workspaceId,
+    leadEmail: { not: null },
+  };
+  if (widgetId) where.widgetId = widgetId;
+
+  const [leads, total] = await Promise.all([
+    prisma.widgetConversation.findMany({
+      where,
+      orderBy: { startedAt: "desc" },
+      skip: (page - 1) * perPage,
+      take: perPage,
+      select: {
+        id: true,
+        leadName: true,
+        leadEmail: true,
+        leadWhatsApp: true,
+        leadScore: true,
+        leadStatus: true,
+        startedAt: true,
+        widget: { select: { name: true } },
+        _count: { select: { messages: true } },
+      },
+    }),
+    prisma.widgetConversation.count({ where }),
+  ]);
+
+  return {
+    leads,
+    total,
+    page,
+    perPage,
+    totalPages: Math.ceil(total / perPage),
+  };
+}
+
+/**
+ * Export leads as CSV string.
+ */
+export async function exportLeads(workspaceId: string, widgetId?: string) {
+  const where: any = {
+    workspaceId,
+    leadEmail: { not: null },
+  };
+  if (widgetId) where.widgetId = widgetId;
+
+  const leads = await prisma.widgetConversation.findMany({
+    where,
+    orderBy: { startedAt: "desc" },
+    select: {
+      leadName: true,
+      leadEmail: true,
+      leadWhatsApp: true,
+      leadScore: true,
+      leadStatus: true,
+      startedAt: true,
+      widget: { select: { name: true } },
+      _count: { select: { messages: true } },
+    },
+  });
+
+  const header = "Name,Email,WhatsApp,Score,Status,Widget,Messages,Date";
+  const rows = leads.map(l =>
+    `"${l.leadName || ""}","${l.leadEmail || ""}","${l.leadWhatsApp || ""}","${l.leadScore || "low"}","${l.leadStatus || "new"}","${l.widget?.name || ""}",${l._count.messages},"${l.startedAt?.toISOString() || ""}"`
+  );
+
+  return [header, ...rows].join("\n");
+}
+
+/**
+ * Update lead status for a conversation.
+ */
+export async function updateLeadStatus(
+  conversationId: string,
+  status: LeadStatus
+) {
+  return prisma.widgetConversation.update({
+    where: { id: conversationId },
+    data: { leadStatus: status },
+  });
+}
+
+/**
+ * Update lead score for a conversation.
+ */
+export async function updateLeadScore(
+  conversationId: string,
+  score: LeadScore
+) {
+  return prisma.widgetConversation.update({
+    where: { id: conversationId },
+    data: { leadScore: score },
+  });
 }

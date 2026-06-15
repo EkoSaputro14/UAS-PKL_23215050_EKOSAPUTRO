@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { validateApiKey } from "@/lib/api-keys";
 import { hasFeature } from "@/lib/entitlements";
-import { setWorkspaceContext } from "@/lib/prisma";
+import { setWorkspaceContext, resolveWorkspaceId } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 // ============================================================
 // API Authentication Middleware
@@ -66,6 +67,47 @@ export async function requireApiAuth(
   }
 
   return auth;
+}
+
+// ============================================================
+// Dashboard Auth (Session + API Key fallback)
+// ============================================================
+
+export interface DashboardAuthResult {
+  workspaceId: string;
+  userId: string;
+  source: "session" | "api_key";
+}
+
+/**
+ * Authenticate a request using either NextAuth session cookie OR API key.
+ * This is for internal dashboard pages that need to call API routes.
+ *
+ * Priority: Session cookie first → API key fallback
+ */
+export async function requireDashboardAuth(
+  request: NextRequest
+): Promise<DashboardAuthResult> {
+  // Try session-based auth first
+  const session = await auth();
+  if (session?.user?.id) {
+    const workspaceId = await resolveWorkspaceId(session.user.id);
+    await setWorkspaceContext(workspaceId);
+    return { workspaceId, userId: session.user.id, source: "session" };
+  }
+
+  // Fallback to API key
+  const apiKeyAuth = await authenticateApiRequest(request);
+  if (apiKeyAuth) {
+    await setWorkspaceContext(apiKeyAuth.workspaceId);
+    return {
+      workspaceId: apiKeyAuth.workspaceId,
+      userId: apiKeyAuth.apiKeyId,
+      source: "api_key",
+    };
+  }
+
+  throw new ApiError(401, "Authentication required. Please log in or provide an API key.");
 }
 
 // ============================================================

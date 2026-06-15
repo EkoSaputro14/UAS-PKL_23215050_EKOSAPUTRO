@@ -1,0 +1,50 @@
+Local server started on http://localhost:8899
+
+=== STEP 1: Widget Config ===
+  ✅ Widget launcher rendered
+  📸 01-widget-opened.png
+  ✅ Dialog: "Chat with Investor Demo Widget"
+
+=== STEP 2: RAG Test — "What is PostgreSQL?" ===
+  ✅ Message sent
+  📸 02-rag-response-1.png
+  ✅ Messages: 3
+  ✅ Response mentions PostgreSQL: true
+  ✅ Has source citations: false
+
+=== STEP 3: RAG Test — "Explain VACUUM" ===
+  ✅ Message sent
+  📸 03-rag-response-2.png
+  ✅ Response mentions VACUUM: true
+
+=== STEP 4: RAG Test — "PostgreSQL 17 changes" ===
+  ✅ Message sent
+  📸 04-rag-response-3.png
+  ✅ Response mentions PostgreSQL 17: true
+
+=== STEP 5: Streaming Verification ===
+  ✅ Streaming requests: 3
+    POST /api/widget/chat/stream
+    POST /api/widget/chat/stream
+    POST /api/widget/chat/stream
+
+=== STEP 6: Conversation Summary ===
+  ✅ Total messages: 7
+  ℹ️ Confidence indicators: false
+
+=== STEP 7: Source Card Inspection ===
+  Source cards found: 0
+  Document citations: 0
+
+=== STEP 8: Conversation History ===
+  ✅ Widget closed
+  📸 05-widget-reopened.png
+  ✅ Continue button: hidden
+
+=== FINAL SUMMARY ===
+Total messages: 7
+PostgreSQL mentioned: true
+VACUUM mentioned: true
+PG17 mentioned: true
+Streaming requests: 3
+Document citations: 0

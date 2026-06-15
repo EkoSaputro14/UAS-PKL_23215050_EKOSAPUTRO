@@ -7,11 +7,13 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { SystemHealth } from "@/components/dashboard/system-health";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import { LeadAlerts } from "@/components/dashboard/lead-alerts";
 import { RecentChats } from "@/components/dashboard/recent-chats";
 import { TopDocuments } from "@/components/dashboard/top-documents";
 import { UsageChart } from "@/components/dashboard/usage-chart";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { resolveWorkspaceId } from "@/lib/prisma";
 import {
   MessageSquare,
   Layers,
@@ -36,11 +38,16 @@ export default async function DashboardPage() {
   let totalMessages = 0;
   let todaySessions = 0;
   let todayMessages = 0;
+  let leadCount = 0;
   let documentsByStatus = {} as Record<string, number>;
 
   try {
     const userId = session?.user?.id as string;
     const userDocWhere = userId ? { userId } : {};
+    const workspaceId = userId ? await resolveWorkspaceId(userId) : null;
+    let newLeads = 0;
+    let qualifiedLeads = 0;
+    let convertedLeads = 0;
 
     const [
       docs,
@@ -48,13 +55,25 @@ export default async function DashboardPage() {
       sessions,
       messages,
       statusGroups,
+      leads,
+      leadsByStatusData,
     ] = await Promise.all([
       prisma.document.count({ where: userDocWhere }),
       prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*)::bigint as count FROM document_chunks dc JOIN documents d ON dc.document_id = d.id WHERE d.user_id = ${userId}`.catch(() => [{ count: BigInt(0) }]),
       prisma.chatSession.count({ where: userDocWhere }),
       prisma.chatMessage.count({ where: { session: { userId } } }),
       prisma.document.groupBy({ by: ["status"], where: userDocWhere, _count: { id: true } }),
-    ]);
+      workspaceId
+        ? prisma.widgetConversation.count({ where: { workspaceId, leadEmail: { not: null } } })
+   : Promise.resolve(0),
+ workspaceId
+   ? prisma.widgetConversation.groupBy({
+       by: ['leadStatus'],
+       where: { workspaceId, leadEmail: { not: null } },
+       _count: true,
+     })
+   : Promise.resolve([]),
+ ]);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -68,6 +87,11 @@ export default async function DashboardPage() {
     totalChunks = Number(chunks[0]?.count ?? 0);
     totalSessions = sessions;
     totalMessages = messages;
+    leadCount = leads;
+    const leadsByStatus = leadsByStatusData as any[];
+    newLeads = leadsByStatus.find((s: any) => s.leadStatus === 'new')?._count || 0;
+    qualifiedLeads = leadsByStatus.find((s: any) => s.leadStatus === 'qualified')?._count || 0;
+    convertedLeads = leadsByStatus.find((s: any) => s.leadStatus === 'converted')?._count || 0;
     todaySessions = tSessions;
     todayMessages = tMessages;
     documentsByStatus = Object.fromEntries(
@@ -105,8 +129,8 @@ export default async function DashboardPage() {
           <OnboardingChecklist hasDocuments={hasDocuments} hasChats={hasChats} />
         )}
 
-        {/* E2: Stat Row V2 — 3 secondary metrics (not Documents) */}
-        <div role="region" aria-label="Statistik dashboard" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {/* E2: Stat Row V2 — 4 secondary metrics */}
+        <div role="region" aria-label="Statistik dashboard" className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <StatCard
             icon={<MessageSquare className="size-5" />}
             label="Chat Sessions"
@@ -125,6 +149,11 @@ export default async function DashboardPage() {
             value={totalMessages}
             trend={todayMessages > 0 ? todayMessages : undefined}
             trendLabel="today"
+          />
+          <StatCard
+            icon={<Users className="size-5" />}
+            label="Leads Captured"
+            value={leadCount}
           />
         </div>
 
@@ -150,6 +179,7 @@ export default async function DashboardPage() {
 
           {/* RIGHT COLUMN — Activity Feed + System Health (40%) */}
           <div className="space-y-6 lg:col-span-2">
+            <LeadAlerts />
             <ActivityFeed />
             <SystemHealth compact />
           </div>

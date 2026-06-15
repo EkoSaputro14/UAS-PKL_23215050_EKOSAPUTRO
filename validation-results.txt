@@ -1,0 +1,44 @@
+
+=== STEP 1: Login + Create Widget ===
+  📸 Screenshot: 01-login-page.png
+  ✅ Logged in successfully
+  📸 Screenshot: 02-dashboard.png
+  📸 Screenshot: 03-widget-settings.png
+  ✅ Widget settings page loaded
+  📸 Screenshot: 04-create-widget-form.png
+  📸 Screenshot: 05-widget-created.png
+  ⚠️ Could not extract publicKey from UI, will try API...
+
+=== STEP 2: Create Test HTML Page ===
+  ✅ Test HTML created: widget-test-real.html
+
+=== STEP 3: Widget Browser Tests ===
+  📸 Screenshot: 06-test-page-loaded.png
+  ❌ 3.1 Widget launcher not found
+  ℹ️ Found 0 buttons on page
+
+=== 3.9 Mobile Viewport Test ===
+  📸 Screenshot: 11-mobile-viewport.png
+  ⚠️ 3.9 Widget launcher not found on mobile
+
+=== 3.10 Keyboard Navigation Test ===
+  Focus after Tab: {"tag":"BODY","ariaLabel":null,"class":""}
+  📸 Screenshot: 13-keyboard-opened.png
+  ✅ 3.10 Keyboard navigation tested (Tab, Enter, Escape)
+
+=== STEP 5: Security Tests ===
+  ❌ 5.1 Invalid publicKey not rejected: {"error":"Failed to fetch"}
+  ⚠️ 5.2 Missing publicKey response: {"error":"Failed to fetch"}
+  ❌ 5.3 Chat with invalid key not rejected: {"error":"Failed to fetch"}
+  ❌ 5.4 Streaming with invalid key not rejected: {"error":"Failed to fetch"}
+
+=== SUMMARY ===
+Console errors: 14
+Network failures: 0
+Console errors:
+  - Access to fetch at 'https://mimotes.ekohomelab.online/api/widget/config?publicKey=pw_pub_test' from 
+  - Failed to load resource: net::ERR_FAILED
+  - [MimoNotes Widget] Config load failed: TypeError: Failed to fetch
+    at apiFetch (https://mimotes.e
+  - Access to fetch at 'https://mimotes.ekohomelab.online/api/widget/config?publicKey=pw_pub_test' from 
+  - Failed to load resource: net::ERR_FAILED
