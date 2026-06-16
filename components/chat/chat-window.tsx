@@ -580,7 +580,7 @@ export default function ChatWindow() {
           {/* Loading indicator — only when waiting for first chunk */}
           {isLoading && messages[messages.length - 1]?.role === "user" && (
             <div className="flex items-start gap-3" role="status" aria-label="AI sedang menulis">
-              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm">
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm">
                 AI
               </div>
               <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-3">

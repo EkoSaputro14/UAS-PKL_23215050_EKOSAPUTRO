@@ -51,15 +51,15 @@ function getActionIconBg(action: string): string {
     case "member.invite":
       return "bg-primary/10 text-primary";
     case "invitation.accepted":
-      return "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400";
+      return "bg-success/10 text-success";
     case "invitation.revoked":
       return "bg-destructive/10 text-destructive";
     case "invitation.resent":
-      return "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400";
+      return "bg-warning/10 text-warning";
     case "member.remove":
       return "bg-destructive/10 text-destructive";
     case "member.role_change":
-      return "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400";
+      return "bg-primary/10 text-primary";
     case "workspace.update":
       return "bg-muted text-muted-foreground";
     default:

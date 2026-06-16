@@ -35,10 +35,10 @@ interface Invitation {
 
 function getStatusBadge(status: string): string {
   const classes: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-300",
-    accepted: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300",
+    pending: "bg-warning/10 text-warning ring-1 ring-warning/20",
+    accepted: "bg-success/10 text-success",
     expired: "bg-muted text-muted-foreground",
-    revoked: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300",
+    revoked: "bg-destructive/10 text-destructive",
   };
   return classes[status] ?? "bg-muted text-muted-foreground";
 }
@@ -55,8 +55,8 @@ function getStatusIcon(status: string) {
 
 function getRoleBadge(role: string): string {
   const classes: Record<string, string> = {
-    admin: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300",
-    editor: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300",
+    admin: "bg-primary/10 text-primary",
+    editor: "bg-success/10 text-success",
     viewer: "bg-muted text-muted-foreground",
   };
   return classes[role] ?? "bg-muted text-muted-foreground";

@@ -128,10 +128,10 @@ export default function SimilaritySearch({ initialQuery }: SimilaritySearchProps
   function SimilarityBar({ score }: { score: number }) {
     const percentage = Math.round(score * 100);
     const color =
-      score >= 0.9 ? "bg-green-500" :
-      score >= 0.7 ? "bg-blue-500" :
-      score >= 0.5 ? "bg-yellow-500" :
-      "bg-red-500";
+      score >= 0.9 ? "bg-success" :
+      score >= 0.7 ? "bg-primary" :
+      score >= 0.5 ? "bg-warning" :
+      "bg-destructive";
 
     return (
       <div className="flex items-center gap-2">

@@ -158,9 +158,9 @@ export default function PromptVersionList({
             <div className="flex-1 overflow-y-auto p-4 font-mono text-xs leading-relaxed">
               {diffLines.map((part, index) => {
                 const color = part.added
-                  ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+                  ? "bg-success/10 text-success"
                   : part.removed
-                    ? "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
+                    ? "bg-destructive/10 text-destructive"
                     : "text-muted-foreground";
                 const prefix = part.added ? "+" : part.removed ? "-" : " ";
                 return (

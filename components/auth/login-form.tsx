@@ -40,9 +40,9 @@ export default function LoginForm() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="bg-white rounded-2xl shadow-xl p-8">
+      <div className="bg-card rounded-2xl shadow-xl p-8">
         <h1 className="text-2xl font-bold text-center mb-2">Login Admin</h1>
-        <p className="text-gray-500 text-center mb-8">
+        <p className="text-muted-foreground text-center mb-8">
           Masuk untuk mengelola dokumen
         </p>
 
@@ -50,7 +50,7 @@ export default function LoginForm() {
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-foreground mb-1"
             >
               Email
             </label>
@@ -59,7 +59,7 @@ export default function LoginForm() {
               name="email"
               type="email"
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
               placeholder="admin@example.com"
             />
           </div>
@@ -67,7 +67,7 @@ export default function LoginForm() {
           <div>
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-foreground mb-1"
             >
               Password
             </label>
@@ -76,7 +76,7 @@ export default function LoginForm() {
               name="password"
               type="password"
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
               placeholder="••••••••"
             />
           </div>
@@ -84,17 +84,17 @@ export default function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {loading ? "Masuk..." : "Masuk"}
           </button>
         </form>
 
-        <p className="text-center text-gray-500 mt-6 text-sm">
+        <p className="text-center text-muted-foreground mt-6 text-sm">
           Belum punya akun?{" "}
           <Link
             href="/register"
-            className="text-blue-600 hover:text-blue-700 font-medium"
+            className="text-primary hover:text-primary/80 font-medium"
           >
             Daftar
           </Link>

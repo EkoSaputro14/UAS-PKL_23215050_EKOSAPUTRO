@@ -78,40 +78,40 @@ export default function AcceptInvitationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-muted flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="flex size-16 items-center justify-center rounded-2xl bg-blue-100 mx-auto mb-4">
-            <Mail className="size-8 text-blue-600" />
+          <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/10 mx-auto mb-4">
+            <Mail className="size-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">MimoNotes</h1>
-          <p className="text-gray-500 mt-1">Undangan Workspace</p>
+          <h1 className="text-2xl font-bold text-foreground">MimoNotes</h1>
+          <p className="text-muted-foreground mt-1">Undangan Workspace</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border p-6">
+        <div className="bg-card rounded-2xl shadow-sm border p-6">
           {status === "loading" && (
             <div className="flex flex-col items-center py-8">
-              <Loader2 className="size-8 animate-spin text-blue-600 mb-4" />
-              <p className="text-sm text-gray-500">Memverifikasi undangan...</p>
+              <Loader2 className="size-8 animate-spin text-primary mb-4" />
+              <p className="text-sm text-muted-foreground">Memverifikasi undangan...</p>
             </div>
           )}
 
           {status === "login-required" && (
             <div className="text-center py-4">
-              <Shield className="size-12 text-gray-300 mx-auto mb-4" />
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              <Shield className="size-12 text-muted-foreground/50 mx-auto mb-4" />
+              <h2 className="text-lg font-semibold text-foreground mb-2">
                 Login Diperlukan
               </h2>
-              <p className="text-sm text-gray-500 mb-6">
+              <p className="text-sm text-muted-foreground mb-6">
                 Anda perlu login atau membuat akun terlebih dahulu untuk
                 menerima undangan ini.
               </p>
               <button
                 type="button"
                 onClick={handleLogin}
-                className="w-full px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                className="w-full px-4 py-3 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
               >
                 Login / Daftar
                 <ArrowRight className="size-4" />
@@ -121,17 +121,17 @@ export default function AcceptInvitationPage() {
 
           {status === "ready" && (
             <div className="text-center py-4">
-              <CheckCircle className="size-12 text-green-500 mx-auto mb-4" />
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              <CheckCircle className="size-12 text-green-600 mx-auto mb-4" />
+              <h2 className="text-lg font-semibold text-foreground mb-2">
                 Undangan Ditemukan
               </h2>
-              <p className="text-sm text-gray-500 mb-6">
+              <p className="text-sm text-muted-foreground mb-6">
                 Klik tombol di bawah untuk bergabung ke workspace.
               </p>
               <button
                 type="button"
                 onClick={handleAccept}
-                className="w-full px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                className="w-full px-4 py-3 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
               >
                 <CheckCircle className="size-4" />
                 Terima Undangan
@@ -141,24 +141,24 @@ export default function AcceptInvitationPage() {
 
           {status === "accepting" && (
             <div className="flex flex-col items-center py-8">
-              <Loader2 className="size-8 animate-spin text-blue-600 mb-4" />
-              <p className="text-sm text-gray-500">Memproses...</p>
+              <Loader2 className="size-8 animate-spin text-primary mb-4" />
+              <p className="text-sm text-muted-foreground">Memproses...</p>
             </div>
           )}
 
           {status === "success" && (
             <div className="text-center py-4">
-              <CheckCircle className="size-12 text-green-500 mx-auto mb-4" />
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              <CheckCircle className="size-12 text-green-600 mx-auto mb-4" />
+              <h2 className="text-lg font-semibold text-foreground mb-2">
                 Berhasil!
               </h2>
-              <p className="text-sm text-gray-500 mb-2">
+              <p className="text-sm text-muted-foreground mb-2">
                 Anda telah bergabung ke{" "}
-                <span className="font-medium text-gray-900">
+                <span className="font-medium text-foreground">
                   {workspaceName}
                 </span>
               </p>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-muted-foreground/60">
                 Mengalihkan ke dashboard...
               </p>
             </div>
@@ -167,14 +167,14 @@ export default function AcceptInvitationPage() {
           {status === "error" && (
             <div className="text-center py-4">
               <XCircle className="size-12 text-red-500 mx-auto mb-4" />
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              <h2 className="text-lg font-semibold text-foreground mb-2">
                 Gagal
               </h2>
-              <p className="text-sm text-gray-500 mb-6">{errorMessage}</p>
+              <p className="text-sm text-muted-foreground mb-6">{errorMessage}</p>
               <button
                 type="button"
                 onClick={() => setStatus("ready")}
-                className="w-full px-4 py-3 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors"
+                className="w-full px-4 py-3 border border-border text-foreground text-sm font-medium rounded-xl hover:bg-muted transition-colors"
               >
                 Coba Lagi
               </button>
@@ -183,7 +183,7 @@ export default function AcceptInvitationPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-gray-400 mt-6">
+        <p className="text-center text-xs text-muted-foreground/60 mt-6">
           Undangan berlaku selama 7 hari
         </p>
       </div>

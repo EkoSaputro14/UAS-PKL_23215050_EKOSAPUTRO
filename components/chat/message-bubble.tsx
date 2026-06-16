@@ -317,7 +317,7 @@ export default function MessageBubble({
         <div
           className={cn(
             "w-8 h-8 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0",
-            isUser ? "bg-gray-600" : "bg-blue-600"
+            isUser ? "bg-muted" : "bg-primary"
           )}
         >
           {isUser ? "U" : "AI"}

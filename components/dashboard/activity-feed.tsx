@@ -41,20 +41,20 @@ const eventConfig: Record<
   document_upload: {
     icon: FileText,
     label: "Document uploaded",
-    color: "text-blue-500",
-    bgColor: "bg-blue-500/10",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
   },
   chat_session: {
     icon: MessageSquare,
     label: "Chat started",
-    color: "text-green-500",
-    bgColor: "bg-green-500/10",
+    color: "text-success",
+    bgColor: "bg-success/10",
   },
   settings_change: {
     icon: Settings,
     label: "Settings updated",
-    color: "text-yellow-500",
-    bgColor: "bg-yellow-500/10",
+    color: "text-warning",
+    bgColor: "bg-warning/10",
   },
 };
 

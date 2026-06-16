@@ -85,14 +85,14 @@ export function ApiKeysManager() {
         <h3 className="text-lg font-semibold text-white mb-4">API Keys</h3>
 
         {newKey && (
-          <div className="bg-green-900/30 border border-green-700 rounded-lg p-4 mb-4">
-            <p className="text-green-300 text-sm font-medium mb-2">🔑 Your new API key (save it now — won't be shown again):</p>
-            <code className="block bg-black/40 rounded p-3 text-green-200 text-sm font-mono break-all">
+          <div className="bg-success/10 border border-success/30 rounded-lg p-4 mb-4">
+            <p className="text-success text-sm font-medium mb-2">🔑 Your new API key (save it now — won't be shown again):</p>
+            <code className="block bg-black/40 rounded p-3 text-success text-sm font-mono break-all">
               {newKey}
             </code>
             <button
               onClick={() => navigator.clipboard.writeText(newKey)}
-              className="mt-2 text-xs text-green-400 hover:text-green-300"
+              className="mt-2 text-xs text-success hover:text-success/80"
             >
               📋 Copy to clipboard
             </button>
@@ -105,42 +105,42 @@ export function ApiKeysManager() {
             value={newKeyName}
             onChange={(e) => setNewKeyName(e.target.value)}
             placeholder="Key name (e.g., Production, Development)"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white text-sm"
+            className="flex-1 bg-card border border-border rounded-lg px-4 py-2 text-white text-sm"
           />
           <button
             onClick={createKey}
             disabled={creating || !newKeyName.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium"
+            className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium"
           >
             {creating ? "Creating..." : "Create Key"}
           </button>
         </div>
 
         {loading ? (
-          <p className="text-gray-400 text-sm">Loading keys...</p>
+          <p className="text-muted-foreground text-sm">Loading keys...</p>
         ) : keys.length === 0 ? (
-          <p className="text-gray-500 text-sm">No API keys yet. Create one above.</p>
+          <p className="text-muted-foreground text-sm">No API keys yet. Create one above.</p>
         ) : (
           <div className="space-y-2">
             {keys.map((key) => (
               <div
                 key={key.id}
-                className="flex items-center justify-between bg-gray-800/50 border border-gray-700 rounded-lg p-3"
+                className="flex items-center justify-between bg-card/50 border border-border rounded-lg p-3"
               >
                 <div>
                   <span className="text-white font-medium">{key.name}</span>
-                  <span className="text-gray-400 text-sm ml-2">{key.keyPrefix}</span>
+                  <span className="text-muted-foreground text-sm ml-2">{key.keyPrefix}</span>
                   {!key.isActive && (
-                    <span className="text-red-400 text-xs ml-2">(revoked)</span>
+                    <span className="text-destructive text-xs ml-2">(revoked)</span>
                   )}
                 </div>
-                <div className="flex items-center gap-4 text-xs text-gray-400">
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   {key.lastUsedAt && <span>Last used: {formatDateSafe(key.lastUsedAt)}</span>}
                   {key.expiresAt && <span>Expires: {formatDateSafe(key.expiresAt)}</span>}
                   {key.isActive && (
                     <button
                       onClick={() => revokeKey(key.id)}
-                      className="text-red-400 hover:text-red-300"
+                      className="text-destructive hover:text-destructive/80"
                     >
                       Revoke
                     </button>

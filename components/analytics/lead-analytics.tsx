@@ -37,17 +37,17 @@ interface LeadAnalyticsData {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  new: "bg-blue-500",
-  contacted: "bg-yellow-500",
+  new: "bg-primary",
+  contacted: "bg-warning",
   qualified: "bg-orange-500",
-  converted: "bg-green-500",
-  lost: "bg-gray-500",
+  converted: "bg-success",
+  lost: "bg-muted",
 };
 
 const SCORE_COLORS: Record<string, string> = {
-  high: "bg-red-500",
-  medium: "bg-yellow-500",
-  low: "bg-gray-500",
+  high: "bg-destructive",
+  medium: "bg-warning",
+  low: "bg-muted",
 };
 
 export function LeadAnalytics() {
@@ -144,7 +144,7 @@ export function LeadAnalytics() {
                   {data.conversionRate}%
                 </p>
               </div>
-              <div className="flex size-12 items-center justify-center rounded-lg bg-green-500/10 text-green-500">
+              <div className="flex size-12 items-center justify-center rounded-lg bg-success/10 text-success">
                 <TrendingUp className="size-6" />
               </div>
             </div>
@@ -162,7 +162,7 @@ export function LeadAnalytics() {
                   {data.leadsByScore["high"] || 0}
                 </p>
               </div>
-              <div className="flex size-12 items-center justify-center rounded-lg bg-red-500/10 text-red-500">
+              <div className="flex size-12 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
                 <Zap className="size-6" />
               </div>
             </div>
@@ -180,7 +180,7 @@ export function LeadAnalytics() {
                   {data.knowledgeGaps.gapRate}%
                 </p>
               </div>
-              <div className="flex size-12 items-center justify-center rounded-lg bg-yellow-500/10 text-yellow-500">
+              <div className="flex size-12 items-center justify-center rounded-lg bg-warning/10 text-warning">
                 <AlertTriangle className="size-6" />
               </div>
             </div>
@@ -215,7 +215,7 @@ export function LeadAnalytics() {
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full ${STATUS_COLORS[status] || "bg-gray-500"}`}
+                        className={`h-full rounded-full ${STATUS_COLORS[status] || "bg-muted"}`}
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
@@ -256,7 +256,7 @@ export function LeadAnalytics() {
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full ${SCORE_COLORS[score] || "bg-gray-500"}`}
+                        className={`h-full rounded-full ${SCORE_COLORS[score] || "bg-muted"}`}
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
@@ -381,7 +381,7 @@ export function LeadAnalytics() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Zap className="size-5 text-red-500" />
+              <Zap className="size-5 text-destructive" />
               Recent High-Intent Leads
             </CardTitle>
           </CardHeader>
@@ -402,7 +402,7 @@ export function LeadAnalytics() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-success/10 text-success">
                       {lead.leadStatus}
                     </span>
                     <p className="text-xs text-muted-foreground mt-1">

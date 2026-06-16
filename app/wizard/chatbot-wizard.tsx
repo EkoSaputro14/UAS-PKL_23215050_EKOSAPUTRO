@@ -167,7 +167,7 @@ export default function ChatbotWizard() {
                     className={cn(
                       "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors",
                       isActive && "bg-primary/10 text-primary",
-                      isCompleted && "text-green-600",
+                      isCompleted && "text-success",
                       !isActive && !isCompleted && "text-muted-foreground"
                     )}
                   >
@@ -175,7 +175,7 @@ export default function ChatbotWizard() {
                       className={cn(
                         "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
                         isActive && "bg-primary text-primary-foreground",
-                        isCompleted && "bg-green-100 text-green-700",
+                        isCompleted && "bg-success/10 text-success",
                         !isActive &&
                           !isCompleted &&
                           "bg-muted text-muted-foreground"
@@ -195,7 +195,7 @@ export default function ChatbotWizard() {
                     <div
                       className={cn(
                         "w-8 h-px mx-1",
-                        isCompleted ? "bg-green-300" : "bg-border"
+                        isCompleted ? "bg-success/30" : "bg-border"
                       )}
                     />
                   )}
@@ -404,7 +404,7 @@ function StepUpload({
               </div>
               <button
                 onClick={() => removeFile(index)}
-                className="text-muted-foreground hover:text-red-500 transition-colors"
+                className="text-muted-foreground hover:text-destructive transition-colors"
               >
                 ✕
               </button>
@@ -606,7 +606,7 @@ function StepPreview({
           style={{ backgroundColor: primaryColor }}
         >
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-background/20 flex items-center justify-center">
               <Bot className="w-4 h-4 text-white" />
             </div>
             <span className="text-white font-medium text-sm">
@@ -616,7 +616,7 @@ function StepPreview({
         </div>
 
         {/* Messages */}
-        <div className="bg-gray-50 p-4 min-h-[200px]">
+        <div className="bg-muted p-4 min-h-[200px]">
           <div className="flex gap-2">
             <div
               className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
@@ -624,8 +624,8 @@ function StepPreview({
             >
               AI
             </div>
-            <div className="bg-white rounded-lg px-3 py-2 shadow-sm max-w-[80%]">
-              <p className="text-sm text-gray-800">
+            <div className="bg-card rounded-lg px-3 py-2 shadow-sm max-w-[80%]">
+              <p className="text-sm text-foreground">
                 {welcomeMessage || "Halo! Ada yang bisa saya bantu?"}
               </p>
             </div>
@@ -633,12 +633,12 @@ function StepPreview({
         </div>
 
         {/* Input */}
-        <div className="border-t p-3 bg-white">
+        <div className="border-t p-3 bg-card">
           <div className="flex gap-2">
             <input
               type="text"
               placeholder="Ketik pesan..."
-              className="flex-1 px-3 py-2 border rounded-lg text-sm bg-gray-50"
+              className="flex-1 px-3 py-2 border rounded-lg text-sm bg-muted"
               disabled
             />
             <button
@@ -685,14 +685,14 @@ function StepGenerate({
       </div>
 
       {/* Success card */}
-      <div className="p-6 bg-green-50 border border-green-200 rounded-xl text-center">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Check className="w-8 h-8 text-green-600" />
+      <div className="p-6 bg-success/10 border border-success/20 rounded-xl text-center">
+        <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Check className="w-8 h-8 text-success" />
         </div>
-        <h3 className="text-lg font-semibold text-green-800">
+        <h3 className="text-lg font-semibold text-success">
           Chatbot Siap Digunakan!
         </h3>
-        <p className="text-sm text-green-600 mt-1">
+        <p className="text-sm text-success mt-1">
           Script widget sudah siap untuk diinstall
         </p>
       </div>
@@ -711,8 +711,8 @@ function StepGenerate({
             className={cn(
               "absolute top-2 right-2 px-3 py-1.5 rounded text-xs font-medium transition-colors",
               copied
-                ? "bg-green-600 text-white"
-                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                ? "bg-success text-white"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
             )}
           >
             {copied ? (
@@ -747,7 +747,7 @@ function StepGenerate({
           <li className="flex gap-2">
             <span className="font-medium text-foreground">3.</span>
             Paste script sebelum tag{" "}
-            <code className="bg-gray-200 px-1 rounded text-xs">
+            <code className="bg-muted px-1 rounded text-xs">
               &lt;/body&gt;
             </code>
           </li>

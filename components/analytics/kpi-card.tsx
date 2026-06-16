@@ -65,7 +65,7 @@ export function KpiCard({
           {trend && (
             <span
               className={`text-xs font-medium ${
-                trend.positive ? "text-green-600" : "text-red-600"
+                trend.positive ? "text-success" : "text-destructive"
               }`}
             >
               {trend.text}

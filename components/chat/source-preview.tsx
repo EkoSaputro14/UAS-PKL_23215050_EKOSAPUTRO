@@ -19,15 +19,15 @@ function getFileTypeLabel(fileType?: string): string {
 function getFileTypeColor(fileType?: string): string {
   switch (fileType) {
     case "pdf":
-      return "bg-red-500/10 text-red-600 dark:text-red-400";
+      return "bg-destructive/10 text-destructive";
     case "docx":
-      return "bg-blue-500/10 text-blue-600 dark:text-blue-400";
+      return "bg-primary/10 text-primary";
     case "txt":
       return "bg-muted text-muted-foreground";
     case "csv":
       return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
     case "xlsx":
-      return "bg-green-500/10 text-green-600 dark:text-green-400";
+      return "bg-success/10 text-success";
     case "url":
       return "bg-violet-500/10 text-violet-600 dark:text-violet-400";
     default:

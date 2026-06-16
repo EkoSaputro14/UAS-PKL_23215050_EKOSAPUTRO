@@ -58,17 +58,17 @@ function getStatusIcon(status: string) {
   switch (status) {
     case "active":
     case "paid":
-      return <CheckCircle2 className="size-4 text-green-500" />;
+      return <CheckCircle2 className="size-4 text-success" />;
     case "trial":
-      return <Clock className="size-4 text-blue-500" />;
+      return <Clock className="size-4 text-primary" />;
     case "past_due":
     case "open":
       return <AlertTriangle className="size-4 text-amber-500" />;
     case "canceled":
     case "void":
-      return <XCircle className="size-4 text-red-500" />;
+      return <XCircle className="size-4 text-destructive" />;
     default:
-      return <Clock className="size-4 text-gray-400" />;
+      return <Clock className="size-4 text-muted-foreground" />;
   }
 }
 
@@ -104,48 +104,48 @@ export default function BillingDashboard() {
     <div className="space-y-6">
       {/* Plan & Revenue */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border p-6">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+        <div className="bg-card rounded-xl border p-6">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
             <CreditCard className="size-4" />
             Current Plan
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold text-foreground">
             {data.plan.displayName}
           </p>
           <div className="flex items-center gap-2 mt-2">
             {getStatusIcon(data.subscription.status)}
-            <span className="text-sm capitalize text-gray-600">
+            <span className="text-sm capitalize text-muted-foreground">
               {data.subscription.status}
             </span>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border p-6">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+        <div className="bg-card rounded-xl border p-6">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
             <TrendingUp className="size-4" />
             Total Revenue
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold text-foreground">
             {formatCents(data.totalPaid)}
           </p>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="text-sm text-muted-foreground mt-2">
             {data.invoices.length} invoice{data.invoices.length !== 1 ? "s" : ""}
           </p>
         </div>
 
-        <div className="bg-white rounded-xl border p-6">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+        <div className="bg-card rounded-xl border p-6">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
             <FileText className="size-4" />
             Usage This Period
           </div>
           <div className="space-y-1 mt-2">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Documents: {data.usage.documents.used}/{data.usage.documents.limit === -1 ? "∞" : data.usage.documents.limit}
             </p>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Storage: {data.usage.storage.used} MB/{data.usage.storage.limit === -1 ? "∞" : `${data.usage.storage.limit} MB`}
             </p>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Messages: {data.usage.chatMessages.used}/{data.usage.chatMessages.limit === -1 ? "∞" : data.usage.chatMessages.limit}
             </p>
           </div>
@@ -163,11 +163,11 @@ export default function BillingDashboard() {
             {data.upgradeSuggestions.map((s) => (
               <div
                 key={s.metric}
-                className="flex items-center justify-between p-3 bg-white rounded-lg border border-amber-100"
+                className="flex items-center justify-between p-3 bg-card rounded-lg border border-amber-100"
               >
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{s.metric}</p>
-                  <p className="text-xs text-gray-500">{s.reason}</p>
+                  <p className="text-sm font-medium text-foreground">{s.metric}</p>
+                  <p className="text-xs text-muted-foreground">{s.reason}</p>
                 </div>
                 <button
                   type="button"
@@ -183,12 +183,12 @@ export default function BillingDashboard() {
       )}
 
       {/* Recent Invoices */}
-      <div className="bg-white rounded-xl border overflow-hidden">
+      <div className="bg-card rounded-xl border overflow-hidden">
         <div className="px-6 py-4 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">Invoices</h3>
+          <h3 className="text-lg font-semibold text-foreground">Invoices</h3>
         </div>
         {data.invoices.length === 0 ? (
-          <div className="px-6 py-8 text-center text-gray-500">
+          <div className="px-6 py-8 text-center text-muted-foreground">
             No invoices yet
           </div>
         ) : (
@@ -197,17 +197,17 @@ export default function BillingDashboard() {
               <div key={inv.id} className="flex items-center gap-4 px-6 py-3">
                 {getStatusIcon(inv.status)}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-foreground">
                     {inv.invoiceNumber}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {formatDateSafe(inv.periodStart)} — {formatDateSafe(inv.periodEnd)}
                   </p>
                 </div>
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-sm font-medium text-foreground">
                   {formatCents(inv.total)}
                 </span>
-                <span className="text-xs text-gray-500 capitalize">
+                <span className="text-xs text-muted-foreground capitalize">
                   {inv.status}
                 </span>
               </div>

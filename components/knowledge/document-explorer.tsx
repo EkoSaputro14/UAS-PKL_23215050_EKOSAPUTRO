@@ -651,7 +651,7 @@ export default function DocumentExplorer({ folderId = null }: DocumentExplorerPr
                       type="checkbox"
                       checked={selectedIds.size === documents.length && documents.length > 0}
                       onChange={toggleSelectAll}
-                      className="size-4 rounded border-gray-300"
+                      className="size-4 rounded border-border"
                     />
                   </label>
                 </TableHead>
@@ -698,7 +698,7 @@ export default function DocumentExplorer({ folderId = null }: DocumentExplorerPr
                         type="checkbox"
                         checked={selectedIds.has(doc.id)}
                         onChange={() => toggleSelect(doc.id)}
-                        className="size-4 rounded border-gray-300"
+                        className="size-4 rounded border-border"
                       />
                     </label>
                   </TableCell>
@@ -799,7 +799,7 @@ export default function DocumentExplorer({ folderId = null }: DocumentExplorerPr
                     type="checkbox"
                     checked={selectedIds.has(doc.id)}
                     onChange={() => toggleSelect(doc.id)}
-                    className="size-4 rounded border-gray-300"
+                    className="size-4 rounded border-border"
                   />
                 </label>
               </div>

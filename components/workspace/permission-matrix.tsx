@@ -97,8 +97,8 @@ function getEffectivePermissions(role: string): Set<string> {
 function getRoleBadgeClass(role: string): string {
   const classes: Record<string, string> = {
     owner: "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300",
-    admin: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300",
-    editor: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300",
+    admin: "bg-primary/10 text-primary",
+    editor: "bg-success/10 text-success",
     viewer: "bg-muted text-muted-foreground",
   };
   return classes[role] ?? "bg-muted text-muted-foreground";
@@ -160,8 +160,8 @@ export default function PermissionMatrix() {
                   return (
                     <td key={role} className="text-center px-4 py-2.5">
                       {hasPerm ? (
-                        <span className="inline-flex items-center justify-center size-5 rounded-full bg-green-100 dark:bg-green-900/50">
-                          <Check className="size-3 text-green-600 dark:text-green-400" />
+                        <span className="inline-flex items-center justify-center size-5 rounded-full bg-success/10">
+                          <Check className="size-3 text-success" />
                         </span>
                       ) : (
                         <span className="inline-flex items-center justify-center size-5 rounded-full bg-muted">

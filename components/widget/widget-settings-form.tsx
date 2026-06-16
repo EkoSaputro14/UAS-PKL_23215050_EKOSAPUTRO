@@ -126,39 +126,39 @@ export default function WidgetSettingsForm() {
           <h2 className="text-lg font-semibold text-white">Your Widgets</h2>
           <button
             onClick={() => setShowCreate(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium"
           >
             + Create Widget
           </button>
         </div>
 
         {showCreate && (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-4">
+          <div className="bg-card border border-border rounded-lg p-4 mb-4">
             <div className="flex gap-2">
               <input
                 type="text"
                 value={newWidgetName}
                 onChange={(e) => setNewWidgetName(e.target.value)}
                 placeholder="Widget name"
-                className="flex-1 bg-gray-900 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                className="flex-1 bg-background border border-border rounded px-3 py-2 text-foreground text-sm"
               />
               <input
                 type="text"
                 value={newWidgetSlug}
                 onChange={(e) => setNewWidgetSlug(e.target.value.replace(/[^a-z0-9-]/g, ""))}
                 placeholder="slug"
-                className="w-40 bg-gray-900 border border-gray-600 rounded px-3 py-2 text-white text-sm font-mono"
+                className="w-40 bg-background border border-border rounded px-3 py-2 text-foreground text-sm font-mono"
               />
-              <button onClick={createWidget} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">Create</button>
-              <button onClick={() => setShowCreate(false)} className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm">Cancel</button>
+              <button onClick={createWidget} className="bg-success hover:bg-success/90 text-white px-4 py-2 rounded text-sm">Create</button>
+              <button onClick={() => setShowCreate(false)} className="bg-muted hover:bg-muted/80 text-muted-foreground px-4 py-2 rounded text-sm">Cancel</button>
             </div>
           </div>
         )}
 
         {loading ? (
-          <p className="text-gray-400 text-sm">Loading...</p>
+          <p className="text-muted-foreground text-sm">Loading...</p>
         ) : widgets.length === 0 ? (
-          <p className="text-gray-500 text-sm">No widgets yet. Create one to get started.</p>
+          <p className="text-muted-foreground text-sm">No widgets yet. Create one to get started.</p>
         ) : (
           <div className="space-y-2">
             {widgets.map((w) => (
@@ -167,17 +167,17 @@ export default function WidgetSettingsForm() {
                 onClick={() => selectWidget(w)}
                 className={`cursor-pointer p-4 rounded-lg border transition-colors ${
                   selectedWidget?.id === w.id
-                    ? "bg-blue-900/30 border-blue-600"
-                    : "bg-gray-800/50 border-gray-700 hover:border-gray-600"
+                    ? "bg-primary/10 border-primary"
+                    : "bg-card/50 border-border hover:border-border/80"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-white font-medium">{w.name}</span>
-                    <span className="text-gray-400 text-sm ml-2 font-mono">/{w.slug}</span>
-                    {!w.isActive && <span className="text-red-400 text-xs ml-2">(disabled)</span>}
+                    <span className="text-muted-foreground text-sm ml-2 font-mono">/{w.slug}</span>
+                    {!w.isActive && <span className="text-destructive text-xs ml-2">(disabled)</span>}
                   </div>
-                  <div className="flex items-center gap-3 text-sm text-gray-400">
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <div className="w-4 h-4 rounded" style={{ background: w.primaryColor }} />
                     <span>{w._count?.conversations ?? 0} conversations</span>
                   </div>
@@ -190,18 +190,18 @@ export default function WidgetSettingsForm() {
 
       {/* Widget Config */}
       {selectedWidget && (
-        <section className="bg-gray-800/50 border border-gray-700 rounded-lg p-6 space-y-6">
+        <section className="bg-card/50 border border-border rounded-lg p-6 space-y-6">
           <h3 className="text-lg font-semibold text-white">{selectedWidget.name} Settings</h3>
 
           {/* Embed Code */}
           <div>
-            <label className="text-sm font-medium text-gray-300 mb-2 block">Embed Code</label>
-            <div className="bg-black/40 rounded-lg p-4 font-mono text-sm text-green-300 break-all">
+            <label className="text-sm font-medium text-foreground mb-2 block">Embed Code</label>
+            <div className="bg-black/40 rounded-lg p-4 font-mono text-sm text-success break-all">
               {embedCode}
             </div>
             <button
               onClick={() => { navigator.clipboard.writeText(embedCode); setSaved(true); }}
-              className="mt-2 text-sm text-blue-400 hover:text-blue-300"
+              className="mt-2 text-sm text-primary hover:text-primary/80"
             >
               {saved ? "✅ Copied!" : "📋 Copy embed code"}
             </button>
@@ -210,54 +210,54 @@ export default function WidgetSettingsForm() {
           {/* API Keys */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-1 block">Public Key</label>
-              <code className="block bg-black/40 rounded p-2 text-xs text-gray-300 break-all">{selectedWidget.publicKey}</code>
+              <label className="text-sm font-medium text-foreground mb-1 block">Public Key</label>
+              <code className="block bg-black/40 rounded p-2 text-xs text-foreground break-all">{selectedWidget.publicKey}</code>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-1 block">Secret Key</label>
-              <code className="block bg-black/40 rounded p-2 text-xs text-gray-300 break-all">{selectedWidget.secretKey}</code>
+              <label className="text-sm font-medium text-foreground mb-1 block">Secret Key</label>
+              <code className="block bg-black/40 rounded p-2 text-xs text-foreground break-all">{selectedWidget.secretKey}</code>
             </div>
           </div>
 
           {/* Theme */}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-1 block">Primary Color</label>
+              <label className="text-sm font-medium text-foreground mb-1 block">Primary Color</label>
               <div className="flex gap-2">
                 <input type="color" defaultValue={selectedWidget.primaryColor} className="w-10 h-10 rounded cursor-pointer" />
-                <span className="text-gray-400 text-sm self-center">{selectedWidget.primaryColor}</span>
+                <span className="text-muted-foreground text-sm self-center">{selectedWidget.primaryColor}</span>
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-1 block">Background</label>
+              <label className="text-sm font-medium text-foreground mb-1 block">Background</label>
               <div className="flex gap-2">
                 <input type="color" defaultValue={selectedWidget.backgroundColor} className="w-10 h-10 rounded cursor-pointer" />
-                <span className="text-gray-400 text-sm self-center">{selectedWidget.backgroundColor}</span>
+                <span className="text-muted-foreground text-sm self-center">{selectedWidget.backgroundColor}</span>
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-1 block">Text Color</label>
+              <label className="text-sm font-medium text-foreground mb-1 block">Text Color</label>
               <div className="flex gap-2">
                 <input type="color" defaultValue={selectedWidget.textColor} className="w-10 h-10 rounded cursor-pointer" />
-                <span className="text-gray-400 text-sm self-center">{selectedWidget.textColor}</span>
+                <span className="text-muted-foreground text-sm self-center">{selectedWidget.textColor}</span>
               </div>
             </div>
           </div>
 
           {/* Welcome Message */}
           <div>
-            <label className="text-sm font-medium text-gray-300 mb-1 block">Welcome Message</label>
+            <label className="text-sm font-medium text-foreground mb-1 block">Welcome Message</label>
             <input
               type="text"
               defaultValue={selectedWidget.welcomeMessage}
-              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+              className="w-full bg-background border border-border rounded px-3 py-2 text-foreground text-sm"
             />
           </div>
 
           {/* Position */}
           <div>
-            <label className="text-sm font-medium text-gray-300 mb-1 block">Position</label>
-            <select defaultValue={selectedWidget.position} className="bg-gray-900 border border-gray-600 rounded px-3 py-2 text-white text-sm">
+            <label className="text-sm font-medium text-foreground mb-1 block">Position</label>
+            <select defaultValue={selectedWidget.position} className="bg-background border border-border rounded px-3 py-2 text-foreground text-sm">
               <option value="bottom-right">Bottom Right</option>
               <option value="bottom-left">Bottom Left</option>
             </select>
@@ -265,32 +265,32 @@ export default function WidgetSettingsForm() {
 
           {/* Allowed Domains */}
           <div>
-            <label className="text-sm font-medium text-gray-300 mb-1 block">Allowed Domains (comma-separated)</label>
+            <label className="text-sm font-medium text-foreground mb-1 block">Allowed Domains (comma-separated)</label>
             <input
               type="text"
               defaultValue={selectedWidget.allowedDomains.join(", ")}
               placeholder="example.com, *.example.com"
-              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+              className="w-full bg-background border border-border rounded px-3 py-2 text-foreground text-sm"
             />
           </div>
 
           {/* Lead Capture */}
-          <div className="border-t border-gray-700 pt-6">
+          <div className="border-t border-border pt-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h4 className="text-sm font-medium text-white">Lead Capture</h4>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Collect visitor information before or during conversations.
                 </p>
               </div>
               <button
                 onClick={() => setLeadCaptureEnabled(!leadCaptureEnabled)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  leadCaptureEnabled ? "bg-blue-600" : "bg-gray-600"
+                  leadCaptureEnabled ? "bg-primary" : "bg-muted"
                 }`}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
                     leadCaptureEnabled ? "translate-x-6" : "translate-x-1"
                   }`}
                 />
@@ -298,20 +298,20 @@ export default function WidgetSettingsForm() {
             </div>
 
             {leadCaptureEnabled && (
-              <div className="space-y-3 bg-gray-900/50 rounded-lg p-4">
-                <p className="text-xs text-gray-400 mb-3">
+              <div className="space-y-3 bg-background/50 rounded-lg p-4">
+                <p className="text-xs text-muted-foreground mb-3">
                   Configure which fields to collect. Toggling &quot;Required&quot; makes the field mandatory.
                 </p>
                 {leadFields.map((field, idx) => (
                   <div
                     key={field.name}
-                    className="flex items-center justify-between py-2 border-b border-gray-700 last:border-0"
+                    className="flex items-center justify-between py-2 border-b border-border last:border-0"
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-sm text-white font-medium">
                         {field.label}
                       </span>
-                      <span className="text-xs text-gray-500 font-mono">
+                      <span className="text-xs text-muted-foreground font-mono">
                         ({field.type})
                       </span>
                     </div>
@@ -323,8 +323,8 @@ export default function WidgetSettingsForm() {
                       }}
                       className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                         field.required
-                          ? "bg-blue-600/20 text-blue-400 border border-blue-600/40"
-                          : "bg-gray-700 text-gray-400 border border-gray-600"
+                          ? "bg-primary/20 text-primary border border-primary/40"
+                          : "bg-muted text-muted-foreground border border-border"
                       }`}
                     >
                       {field.required ? "Required" : "Optional"}
@@ -333,7 +333,7 @@ export default function WidgetSettingsForm() {
                 ))}
                 <button
                   onClick={saveLeadCapture}
-                  className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium"
+                  className="mt-3 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded text-sm font-medium"
                 >
                   {saved ? "✅ Saved!" : "Save Lead Capture Settings"}
                 </button>
@@ -342,19 +342,19 @@ export default function WidgetSettingsForm() {
           </div>
 
           {/* Leads Quick Link */}
-          <div className="border-t border-gray-700 pt-4">
+          <div className="border-t border-border pt-4">
             <a
               href="/settings/leads"
-              className="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 hover:bg-gray-900 transition-colors group"
+              className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background transition-colors group"
             >
               <div className="flex items-center gap-3">
-                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                 <div>
                   <p className="text-sm text-white font-medium">View All Leads</p>
-                  <p className="text-xs text-gray-400">{leadCount} leads captured</p>
+                  <p className="text-xs text-muted-foreground">{leadCount} leads captured</p>
                 </div>
               </div>
-              <span className="text-gray-400 group-hover:text-white transition-colors">→</span>
+              <span className="text-muted-foreground group-hover:text-foreground transition-colors">→</span>
             </a>
           </div>
         </section>
@@ -362,21 +362,21 @@ export default function WidgetSettingsForm() {
 
       {/* Analytics Preview */}
       {selectedWidget && (
-        <section className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+        <section className="bg-card/50 border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Analytics</h3>
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-gray-900/50 rounded-lg p-4">
-              <p className="text-gray-400 text-xs mb-1">Total Conversations</p>
+            <div className="bg-background/50 rounded-lg p-4">
+              <p className="text-muted-foreground text-xs mb-1">Total Conversations</p>
               <p className="text-white text-2xl font-bold">{selectedWidget._count?.conversations ?? 0}</p>
             </div>
-            <div className="bg-gray-900/50 rounded-lg p-4">
-              <p className="text-gray-400 text-xs mb-1">Status</p>
-              <p className={`text-2xl font-bold ${selectedWidget.isActive ? "text-green-400" : "text-red-400"}`}>
+            <div className="bg-background/50 rounded-lg p-4">
+              <p className="text-muted-foreground text-xs mb-1">Status</p>
+              <p className={`text-2xl font-bold ${selectedWidget.isActive ? "text-success" : "text-destructive"}`}>
                 {selectedWidget.isActive ? "Active" : "Disabled"}
               </p>
             </div>
-            <div className="bg-gray-900/50 rounded-lg p-4">
-              <p className="text-gray-400 text-xs mb-1">Domains</p>
+            <div className="bg-background/50 rounded-lg p-4">
+              <p className="text-muted-foreground text-xs mb-1">Domains</p>
               <p className="text-white text-2xl font-bold">{selectedWidget.allowedDomains.length || "All"}</p>
             </div>
           </div>

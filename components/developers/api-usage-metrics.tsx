@@ -30,7 +30,7 @@ export function ApiUsageMetrics() {
   }, []);
 
   if (loading) {
-    return <p className="text-gray-400 text-sm">Loading metrics...</p>;
+    return <p className="text-muted-foreground text-sm">Loading metrics...</p>;
   }
 
   return (
@@ -48,15 +48,15 @@ export function ApiUsageMetrics() {
       {/* Top endpoints */}
       {summary?.topEndpoints && summary.topEndpoints.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-gray-400 mb-2">Top Endpoints</h4>
+          <h4 className="text-sm font-medium text-muted-foreground mb-2">Top Endpoints</h4>
           <div className="space-y-1">
             {summary.topEndpoints.map((ep) => (
               <div
                 key={ep.endpoint}
-                className="flex items-center justify-between bg-gray-800/50 rounded px-3 py-2 text-sm"
+                className="flex items-center justify-between bg-card/50 rounded px-3 py-2 text-sm"
               >
-                <code className="text-gray-300 font-mono">{ep.endpoint}</code>
-                <div className="flex gap-4 text-gray-400">
+                <code className="text-foreground font-mono">{ep.endpoint}</code>
+                <div className="flex gap-4 text-muted-foreground">
                   <span>{ep.requests} reqs</span>
                   <span>{ep.avgLatencyMs}ms avg</span>
                 </div>
@@ -67,7 +67,7 @@ export function ApiUsageMetrics() {
       )}
 
       {!summary && (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-muted-foreground">
           <p className="text-lg mb-2">📊 No API usage yet</p>
           <p className="text-sm">Start making API calls to see metrics here.</p>
         </div>
@@ -78,8 +78,8 @@ export function ApiUsageMetrics() {
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-      <p className="text-gray-400 text-xs mb-1">{label}</p>
+    <div className="bg-card/50 border border-border rounded-lg p-4">
+      <p className="text-muted-foreground text-xs mb-1">{label}</p>
       <p className="text-white text-xl font-bold">{value}</p>
     </div>
   );

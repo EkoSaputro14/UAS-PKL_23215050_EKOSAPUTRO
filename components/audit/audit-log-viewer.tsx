@@ -22,20 +22,20 @@ interface AuditSummary {
 }
 
 const ACTION_COLORS: Record<string, string> = {
-  auth: "bg-blue-600",
+  auth: "bg-primary",
   api_key: "bg-purple-600",
-  widget: "bg-green-600",
-  document: "bg-yellow-600",
-  billing: "bg-red-600",
+  widget: "bg-success",
+  document: "bg-warning",
+  billing: "bg-destructive",
   subscription: "bg-orange-600",
   member: "bg-cyan-600",
   mcp: "bg-pink-600",
-  workspace: "bg-gray-600",
+  workspace: "bg-muted",
 };
 
 function getActionColor(action: string) {
   const prefix = action.split(".")[0];
-  return ACTION_COLORS[prefix] || "bg-gray-600";
+  return ACTION_COLORS[prefix] || "bg-muted";
 }
 
 export default function AuditLogViewer() {
@@ -109,21 +109,21 @@ export default function AuditLogViewer() {
       {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-            <p className="text-gray-400 text-xs mb-1">Total Events (30d)</p>
-            <p className="text-white text-2xl font-bold">{summary.totalEvents.toLocaleString()}</p>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <p className="text-muted-foreground text-xs mb-1">Total Events (30d)</p>
+            <p className="text-foreground text-2xl font-bold">{summary.totalEvents.toLocaleString()}</p>
           </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-            <p className="text-gray-400 text-xs mb-1">Top Action</p>
-            <p className="text-white text-sm font-mono">{summary.topActions[0]?.action || "—"}</p>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <p className="text-muted-foreground text-xs mb-1">Top Action</p>
+            <p className="text-foreground text-sm font-mono">{summary.topActions[0]?.action || "—"}</p>
           </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-            <p className="text-gray-400 text-xs mb-1">Most Active Actor</p>
-            <p className="text-white text-sm font-mono truncate">{summary.topActors[0]?.actorId || "—"}</p>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <p className="text-muted-foreground text-xs mb-1">Most Active Actor</p>
+            <p className="text-foreground text-sm font-mono truncate">{summary.topActors[0]?.actorId || "—"}</p>
           </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-            <p className="text-gray-400 text-xs mb-1">Unique Actions</p>
-            <p className="text-white text-2xl font-bold">{summary.topActions.length}</p>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <p className="text-muted-foreground text-xs mb-1">Unique Actions</p>
+            <p className="text-foreground text-2xl font-bold">{summary.topActions.length}</p>
           </div>
         </div>
       )}
@@ -137,13 +137,13 @@ export default function AuditLogViewer() {
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             placeholder="Search logs..."
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white text-sm"
+            className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground text-sm"
           />
         </div>
         <select
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+          className="bg-background border border-border rounded-lg px-3 py-2 text-foreground text-sm"
         >
           <option value="">All Actions</option>
           <option value="auth.">Auth</option>
@@ -158,7 +158,7 @@ export default function AuditLogViewer() {
         <select
           value={resourceFilter}
           onChange={(e) => setResourceFilter(e.target.value)}
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+          className="bg-background border border-border rounded-lg px-3 py-2 text-foreground text-sm"
         >
           <option value="">All Resources</option>
           <option value="api_key">API Keys</option>
@@ -167,33 +167,33 @@ export default function AuditLogViewer() {
           <option value="member">Members</option>
           <option value="mcp_server">MCP Servers</option>
         </select>
-        <button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+        <button onClick={handleSearch} className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm">
           🔍 Search
         </button>
-        <button onClick={handleExport} className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+        <button onClick={handleExport} className="bg-muted hover:bg-muted/80 text-foreground px-4 py-2 rounded-lg text-sm">
           📥 Export CSV
         </button>
       </div>
 
       {/* Results count */}
-      <p className="text-gray-400 text-sm">
+      <p className="text-muted-foreground text-sm">
         {total.toLocaleString()} events found
       </p>
 
       {/* Log entries */}
       {loading && logs.length === 0 ? (
-        <p className="text-gray-400 text-sm text-center py-8">Loading...</p>
+        <p className="text-muted-foreground text-sm text-center py-8">Loading...</p>
       ) : logs.length === 0 ? (
-        <p className="text-gray-500 text-sm text-center py-8">No audit logs found.</p>
+        <p className="text-muted-foreground text-sm text-center py-8">No audit logs found.</p>
       ) : (
         <div className="space-y-1">
           {logs.map((log) => (
             <div
               key={log.id}
-              className="flex items-start gap-3 bg-gray-800/30 border border-gray-700/50 rounded-lg px-4 py-3 hover:bg-gray-800/50 transition-colors"
+              className="flex items-start gap-3 bg-muted/30 border border-border/50 rounded-lg px-4 py-3 hover:bg-muted/50 transition-colors"
             >
               {/* Action badge */}
-              <span className={`inline-block px-2 py-0.5 rounded text-xs font-mono text-white flex-shrink-0 ${getActionColor(log.action)}`}>
+              <span className={`inline-block px-2 py-0.5 rounded text-xs font-mono text-primary-foreground flex-shrink-0 ${getActionColor(log.action)}`}>
                 {log.action}
               </span>
 
@@ -201,14 +201,14 @@ export default function AuditLogViewer() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 text-sm">
                   {log.resourceType && (
-                    <span className="text-gray-400">
+                    <span className="text-muted-foreground">
                       {log.resourceType}
-                      {log.resourceId && <span className="text-gray-500 ml-1">({log.resourceId.substring(0, 8)}...)</span>}
+                      {log.resourceId && <span className="text-muted-foreground/70 ml-1">({log.resourceId.substring(0, 8)}...)</span>}
                     </span>
                   )}
                 </div>
                 {log.metadata && Object.keys(log.metadata).length > 0 && (
-                  <p className="text-gray-500 text-xs mt-1 font-mono truncate">
+                  <p className="text-muted-foreground text-xs mt-1 font-mono truncate">
                     {JSON.stringify(log.metadata)}
                   </p>
                 )}
@@ -216,8 +216,8 @@ export default function AuditLogViewer() {
 
               {/* Actor + Time */}
               <div className="text-right flex-shrink-0">
-                <p className="text-gray-400 text-xs font-mono">{log.actorId?.substring(0, 12) || "system"}</p>
-                <p className="text-gray-500 text-xs">{new Date(log.createdAt).toLocaleString()}</p>
+                <p className="text-muted-foreground text-xs font-mono">{log.actorId?.substring(0, 12) || "system"}</p>
+                <p className="text-muted-foreground/70 text-xs">{new Date(log.createdAt).toLocaleString()}</p>
               </div>
             </div>
           ))}
@@ -229,7 +229,7 @@ export default function AuditLogViewer() {
         <button
           onClick={() => { setPage((p) => p + 1); fetchLogs(false); }}
           disabled={loading}
-          className="w-full bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg text-sm disabled:opacity-50"
+          className="w-full bg-muted hover:bg-muted/80 text-foreground py-2 rounded-lg text-sm disabled:opacity-50"
         >
           {loading ? "Loading..." : "Load More"}
         </button>

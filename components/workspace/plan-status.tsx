@@ -13,7 +13,7 @@ const PLAN_ICONS: Record<string, React.ReactNode> = {
 };
 
 const PLAN_COLORS: Record<string, string> = {
-  free: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
+  free: "bg-muted text-gray-800 dark:bg-gray-800 dark:text-gray-200",
   pro: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   enterprise: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
 };
@@ -72,7 +72,7 @@ export async function PlanStatus({ workspaceId }: PlanStatusProps) {
               {disabled.map((feature: FeatureName) => (
                 <span
                   key={feature}
-                  className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                  className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-muted-foreground dark:bg-gray-800 dark:text-gray-400"
                 >
                   <Lock className="size-3" />
                   {getFeatureDisplayName(feature)}

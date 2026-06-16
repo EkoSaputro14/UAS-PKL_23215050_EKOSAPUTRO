@@ -18,17 +18,17 @@ interface Lead {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  new: "bg-blue-100 text-blue-800",
-  contacted: "bg-yellow-100 text-yellow-800",
-  qualified: "bg-orange-100 text-orange-800",
-  converted: "bg-green-100 text-green-800",
-  lost: "bg-gray-100 text-gray-800",
+  new: "bg-primary/10 text-primary",
+  contacted: "bg-warning/10 text-warning",
+  qualified: "bg-warning/10 text-warning",
+  converted: "bg-success/10 text-success",
+  lost: "bg-muted text-muted-foreground",
 };
 
 const SCORE_COLORS: Record<string, string> = {
-  high: "bg-red-100 text-red-800",
-  medium: "bg-yellow-100 text-yellow-800",
-  low: "bg-gray-100 text-gray-800",
+  high: "bg-destructive/10 text-destructive",
+  medium: "bg-warning/10 text-warning",
+  low: "bg-muted text-muted-foreground",
 };
 
 export function LeadsTable() {

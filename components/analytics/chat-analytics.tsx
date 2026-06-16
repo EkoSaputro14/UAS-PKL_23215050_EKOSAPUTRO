@@ -205,7 +205,7 @@ export default function ChatAnalytics() {
                 </div>
                 <div className="h-4 w-full rounded-full bg-secondary overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-green-500 transition-all"
+                    className="h-full rounded-full bg-success transition-all"
                     style={{ width: `${data.responseQuality.sourceRate}%` }}
                   />
                 </div>
@@ -225,7 +225,7 @@ export default function ChatAnalytics() {
                 </div>
               </div>
               <div className="pt-2 text-center">
-                <div className="text-3xl font-bold text-green-600">
+                <div className="text-3xl font-bold text-success">
                   {data.responseQuality.sourceRate}%
                 </div>
                 <div className="text-sm text-muted-foreground">Source Hit Rate</div>

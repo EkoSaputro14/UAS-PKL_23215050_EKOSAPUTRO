@@ -188,7 +188,7 @@ export default function PromptList() {
                         v{prompt.version}
                       </Badge>
                       {prompt.isActive && (
-                        <Badge className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 shrink-0">
+                        <Badge className="text-[10px] bg-success/10 text-success shrink-0">
                           Active
                         </Badge>
                       )}

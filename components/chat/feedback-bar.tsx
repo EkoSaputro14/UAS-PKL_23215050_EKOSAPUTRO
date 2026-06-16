@@ -100,7 +100,7 @@ export default function FeedbackBar({
           "transition-all duration-150",
           "text-muted-foreground hover:text-foreground hover:bg-muted",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-          copied && "text-green-600"
+          copied && "text-success"
         )}
         aria-label="Salin jawaban"
         title="Salin jawaban"

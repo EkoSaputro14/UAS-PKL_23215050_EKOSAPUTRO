@@ -130,10 +130,10 @@ export default function DocumentList() {
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-white ${
                     doc.status === "ready"
-                      ? "bg-emerald-500"
+                      ? "bg-success"
                       : doc.status === "processing"
-                      ? "bg-amber-500"
-                      : "bg-red-500"
+                      ? "bg-warning"
+                      : "bg-destructive"
                   }`}
                 >
                   {doc.status === "ready"
@@ -152,7 +152,7 @@ export default function DocumentList() {
             </span>
             <button
               onClick={() => handleDelete(doc.id)}
-              className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
               title="Hapus dokumen"
             >
               <svg

@@ -226,7 +226,7 @@ export default function SessionSidebar({
                     </span>
                     <button
                       onClick={(e) => handleDelete(e, session.id)}
-                      className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center w-[44px] h-[44px] text-muted-foreground hover:text-red-600 rounded-lg transition-all"
+                      className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center w-[44px] h-[44px] text-muted-foreground hover:text-destructive rounded-lg transition-all"
                       aria-label="Hapus percakapan"
                     >
                       <svg

@@ -56,11 +56,11 @@ export default function ImagesPage() {
   function getStatusBadge(status: string) {
     switch (status) {
       case "ready":
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Ready</Badge>;
+        return <Badge className="bg-success/10 text-success border-success/20">Ready</Badge>;
       case "processing":
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Processing</Badge>;
+        return <Badge className="bg-warning/10 text-warning border-warning/20">Processing</Badge>;
       case "failed":
-        return <Badge className="bg-red-100 text-red-800 border-red-200">Failed</Badge>;
+        return <Badge className="bg-destructive/10 text-destructive border-destructive/20">Failed</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }

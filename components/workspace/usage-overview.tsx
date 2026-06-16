@@ -45,9 +45,9 @@ function formatStorage(mb: number): string {
 }
 
 function getBarColor(percent: number): string {
-  if (percent >= 90) return "bg-red-500";
+  if (percent >= 90) return "bg-destructive";
   if (percent >= 70) return "bg-amber-500";
-  return "bg-blue-500";
+  return "bg-primary";
 }
 
 function UsageBar({
@@ -71,23 +71,23 @@ function UsageBar({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-          <Icon className="size-4 text-gray-400" />
+        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <Icon className="size-4 text-muted-foreground" />
           {label}
         </div>
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-muted-foreground">
           {displayUsed} / {displayLimit}
         </span>
       </div>
       {limit !== -1 ? (
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-500 ${getBarColor(percent)}`}
             style={{ width: `${Math.min(100, percent)}%` }}
           />
         </div>
       ) : (
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div className="h-full rounded-full bg-blue-500" style={{ width: "5%" }} />
         </div>
       )}
@@ -130,26 +130,26 @@ export default function UsageOverview() {
   return (
     <div className="space-y-6">
       {/* Plan Status Card */}
-      <div className="bg-white rounded-xl border p-6">
+      <div className="bg-card rounded-xl border p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Plan Status</h3>
-          <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+          <h3 className="text-lg font-semibold text-foreground">Plan Status</h3>
+          <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
             {subscription.plan.displayName}
           </span>
         </div>
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="text-sm text-muted-foreground mb-4">
           {subscription.plan.description || "Current plan"}
         </p>
         <div className="flex items-center gap-4 text-sm">
           <div>
-            <span className="text-gray-500">Status: </span>
-            <span className="font-medium text-gray-900 capitalize">
+            <span className="text-muted-foreground">Status: </span>
+            <span className="font-medium text-foreground capitalize">
               {subscription.status}
             </span>
           </div>
           <div>
-            <span className="text-gray-500">Period: </span>
-            <span className="font-medium text-gray-900">{usage.period}</span>
+            <span className="text-muted-foreground">Period: </span>
+            <span className="font-medium text-foreground">{usage.period}</span>
           </div>
         </div>
         {subscription.trialEndsAt && (
@@ -162,8 +162,8 @@ export default function UsageOverview() {
       </div>
 
       {/* Usage Overview Card */}
-      <div className="bg-white rounded-xl border p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">
+      <div className="bg-card rounded-xl border p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-6">
           Usage Overview — {usage.period}
         </h3>
         <div className="space-y-5">

@@ -66,7 +66,7 @@ export default function DocumentPreview({ fileUrl, fileType, title, status }: Do
   // PDF preview
   if (fileType === "pdf") {
     return (
-      <div className="rounded-lg overflow-hidden border bg-white">
+      <div className="rounded-lg overflow-hidden border bg-background">
         <iframe
           src={fileUrl}
           className="w-full h-[600px]"

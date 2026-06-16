@@ -317,7 +317,7 @@ export default function PlaygroundEditor() {
                   className="h-7 px-2"
                 >
                   {copied ? (
-                    <Check className="size-3.5 text-green-500" />
+                    <Check className="size-3.5 text-success" />
                   ) : (
                     <Copy className="size-3.5" />
                   )}

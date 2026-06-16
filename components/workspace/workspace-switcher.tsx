@@ -37,8 +37,8 @@ const ROLE_DESCRIPTIONS: Record<string, string> = {
 function getRoleBadgeClass(role: string): string {
   const classes: Record<string, string> = {
     owner: "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300",
-    admin: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300",
-    editor: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300",
+    admin: "bg-primary/10 text-primary",
+    editor: "bg-success/10 text-success",
     viewer: "bg-muted text-muted-foreground",
   };
   return classes[role] ?? "bg-muted text-muted-foreground";
@@ -185,7 +185,7 @@ export default function WorkspaceSwitcher() {
             {selected?.name ?? "Pilih workspace"}
           </span>
           {pendingInvitationCount > 0 && (
-            <span className="inline-flex items-center justify-center size-5 rounded-full bg-red-500 text-white text-[10px] font-bold">
+            <span className="inline-flex items-center justify-center size-5 rounded-full bg-destructive text-white text-[10px] font-bold">
               {pendingInvitationCount > 9 ? "9+" : pendingInvitationCount}
             </span>
           )}
@@ -234,7 +234,7 @@ export default function WorkspaceSwitcher() {
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium truncate">{ws.name}</p>
                   {pendingInvitationCount > 0 && isSelected && (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] text-red-500 font-medium">
+                    <span className="inline-flex items-center gap-0.5 text-[10px] text-destructive font-medium">
                       <Mail className="size-3" />
                       {pendingInvitationCount}
                     </span>

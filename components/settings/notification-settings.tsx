@@ -136,7 +136,7 @@ export default function NotificationSettings() {
           >
             <div>
               <div className="text-sm font-medium text-foreground flex items-center gap-2">
-                <Zap className="size-4 text-red-500" />
+                <Zap className="size-4 text-destructive" />
                 High-Intent Lead Detected
               </div>
               <div className="text-xs text-muted-foreground">
@@ -152,7 +152,7 @@ export default function NotificationSettings() {
               aria-checked={config.notifyOnHighLead}
             >
               <div
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-background transition-transform ${
                   config.notifyOnHighLead ? "translate-x-5" : ""
                 }`}
               />
@@ -168,7 +168,7 @@ export default function NotificationSettings() {
           >
             <div>
               <div className="text-sm font-medium text-foreground flex items-center gap-2">
-                <UserCheck className="size-4 text-green-500" />
+                <UserCheck className="size-4 text-success" />
                 Lead Converted
               </div>
               <div className="text-xs text-muted-foreground">
@@ -183,7 +183,7 @@ export default function NotificationSettings() {
               aria-checked={config.notifyOnConverted}
             >
               <div
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-background transition-transform ${
                   config.notifyOnConverted ? "translate-x-5" : ""
                 }`}
               />
@@ -211,7 +211,7 @@ export default function NotificationSettings() {
             aria-checked={config.emailEnabled}
           >
             <div
-              className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+              className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-background transition-transform ${
                 config.emailEnabled ? "translate-x-5" : ""
               }`}
             />
@@ -252,7 +252,7 @@ export default function NotificationSettings() {
             aria-checked={config.telegramEnabled}
           >
             <div
-              className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+              className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-background transition-transform ${
                 config.telegramEnabled ? "translate-x-5" : ""
               }`}
             />
@@ -317,7 +317,7 @@ export default function NotificationSettings() {
             aria-checked={config.discordEnabled}
           >
             <div
-              className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+              className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-background transition-transform ${
                 config.discordEnabled ? "translate-x-5" : ""
               }`}
             />

@@ -61,8 +61,8 @@ const ROLE_DESCRIPTIONS: Record<string, string> = {
 function getRoleBadgeClass(role: string): string {
   const classes: Record<string, string> = {
     owner: "bg-purple-100 text-purple-700 ring-1 ring-purple-200 dark:bg-purple-900/50 dark:text-purple-300",
-    admin: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300",
-    editor: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300",
+    admin: "bg-primary/10 text-primary",
+    editor: "bg-success/10 text-success",
     viewer: "bg-muted text-muted-foreground",
   };
   return classes[role] ?? "bg-muted text-muted-foreground";

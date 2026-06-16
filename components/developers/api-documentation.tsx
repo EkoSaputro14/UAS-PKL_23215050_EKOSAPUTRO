@@ -117,24 +117,24 @@ export function ApiDocumentation() {
             onClick={() => setSelectedEndpoint(i)}
             className={`w-full text-left p-3 rounded-lg border transition-colors ${
               selectedEndpoint === i
-                ? "bg-blue-900/30 border-blue-600"
-                : "bg-gray-800/50 border-gray-700 hover:border-gray-600"
+                ? "bg-primary/10 border-primary"
+                : "bg-card/50 border-border hover:border-border/80"
             }`}
           >
             <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold mr-2 ${
-              endpoint.method === "GET" ? "bg-green-600 text-white" : "bg-blue-600 text-white"
+              endpoint.method === "GET" ? "bg-success text-white" : "bg-primary text-primary-foreground"
             }`}>
               {endpoint.method}
             </span>
             <span className="text-white font-mono text-sm">{endpoint.path}</span>
-            <span className="text-gray-400 text-sm ml-2">— {endpoint.title}</span>
+            <span className="text-muted-foreground text-sm ml-2">— {endpoint.title}</span>
           </button>
         ))}
       </div>
 
       {/* Endpoint details */}
-      <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-        <p className="text-gray-300 text-sm mb-4">{ep.description}</p>
+      <div className="bg-card/50 border border-border rounded-lg p-4">
+        <p className="text-foreground text-sm mb-4">{ep.description}</p>
 
         {/* Code examples */}
         <div className="mb-4">
@@ -145,8 +145,8 @@ export function ApiDocumentation() {
                 onClick={() => setCodeLang(lang)}
                 className={`px-3 py-1 rounded text-xs font-medium ${
                   codeLang === lang
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
                 {lang === "javascript" ? "JavaScript" : lang === "python" ? "Python" : "cURL"}
@@ -160,8 +160,8 @@ export function ApiDocumentation() {
 
         {/* Response example */}
         <div>
-          <h4 className="text-sm font-medium text-gray-400 mb-2">Response</h4>
-          <pre className="bg-black/40 rounded-lg p-4 text-sm text-gray-300 font-mono overflow-x-auto">
+          <h4 className="text-sm font-medium text-muted-foreground mb-2">Response</h4>
+          <pre className="bg-black/40 rounded-lg p-4 text-sm text-foreground font-mono overflow-x-auto">
             {ep.response}
           </pre>
         </div>

@@ -114,19 +114,19 @@ export function LeadAlerts() {
             {/* Alert Summary Badges */}
             <div className="flex gap-2 flex-wrap">
               {data.newLeads > 0 && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-100 text-blue-800 text-xs font-medium">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
                   <AlertCircle className="size-3.5" />
                   {data.newLeads} New
                 </div>
               )}
               {data.highLeads > 0 && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-100 text-red-800 text-xs font-medium">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-destructive/10 text-destructive text-xs font-medium">
                   <Zap className="size-3.5" />
                   {data.highLeads} High-Intent
                 </div>
               )}
               {data.convertedLeads > 0 && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 text-green-800 text-xs font-medium">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-success/10 text-success text-xs font-medium">
                   <UserCheck className="size-3.5" />
                   {data.convertedLeads} Converted
                 </div>
@@ -142,11 +142,11 @@ export function LeadAlerts() {
                 >
                   <div className="flex items-center gap-2">
                     {alert.leadScore === "high" ? (
-                      <Zap className="size-4 text-red-500" />
+                      <Zap className="size-4 text-destructive" />
                     ) : alert.leadStatus === "converted" ? (
-                      <UserCheck className="size-4 text-green-500" />
+                      <UserCheck className="size-4 text-success" />
                     ) : (
-                      <AlertCircle className="size-4 text-blue-500" />
+                      <AlertCircle className="size-4 text-primary" />
                     )}
                     <div>
                       <p className="text-sm font-medium">
@@ -163,10 +163,10 @@ export function LeadAlerts() {
                     <span
                       className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
                         alert.leadScore === "high"
-                          ? "bg-red-100 text-red-800"
+                          ? "bg-destructive/10 text-destructive"
                           : alert.leadScore === "medium"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-gray-100 text-gray-800"
+                          ? "bg-warning/10 text-warning"
+                          : "bg-muted text-muted-foreground"
                       }`}
                     >
                       {alert.leadScore}
@@ -174,12 +174,12 @@ export function LeadAlerts() {
                     <span
                       className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
                         alert.leadStatus === "converted"
-                          ? "bg-green-100 text-green-800"
+                          ? "bg-success/10 text-success"
                           : alert.leadStatus === "qualified"
-                          ? "bg-orange-100 text-orange-800"
+                          ? "bg-warning/10 text-warning"
                           : alert.leadStatus === "contacted"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-blue-100 text-blue-800"
+                          ? "bg-warning/10 text-warning"
+                          : "bg-primary/10 text-primary"
                       }`}
                     >
                       {alert.leadStatus}

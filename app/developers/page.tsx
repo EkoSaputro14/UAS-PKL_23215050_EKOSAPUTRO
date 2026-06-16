@@ -22,19 +22,19 @@ export default function DevelopersPage() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b border-gray-800 bg-gray-900/50">
+      <div className="border-b border-border bg-card/50">
         <div className="max-w-6xl mx-auto px-6 py-6">
           <h1 className="text-2xl font-bold text-white mb-1">API Platform</h1>
-          <p className="text-gray-400 text-sm">
+          <p className="text-muted-foreground text-sm">
             Access Mimotes programmatically via REST API. Manage keys, view docs, and track usage.
           </p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-800">
+      <div className="border-b border-border">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex gap-1">
             {tabs.map((tab) => (
@@ -43,8 +43,8 @@ export default function DevelopersPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === tab.id
-                    ? "border-blue-500 text-blue-400"
-                    : "border-transparent text-gray-400 hover:text-gray-200"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <span className="mr-1">{tab.icon}</span>
@@ -76,9 +76,9 @@ function OverviewTab() {
       {/* Quick Start */}
       <section>
         <h2 className="text-lg font-semibold text-white mb-4">Quick Start</h2>
-        <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6 space-y-4">
+        <div className="bg-card/50 border border-border rounded-lg p-6 space-y-4">
           <Step number={1} title="Get your API key">
-            <p className="text-gray-400 text-sm">
+            <p className="text-muted-foreground text-sm">
               Go to the <strong className="text-white">API Keys</strong> tab and create a new key.
               Save it — it won&apos;t be shown again.
             </p>
@@ -92,7 +92,7 @@ function OverviewTab() {
             </pre>
           </Step>
           <Step number={3} title="Explore the API">
-            <p className="text-gray-400 text-sm">
+            <p className="text-muted-foreground text-sm">
               Check the <strong className="text-white">Documentation</strong> tab for all available endpoints.
             </p>
           </Step>
@@ -112,15 +112,15 @@ function OverviewTab() {
       {/* Authentication */}
       <section>
         <h2 className="text-lg font-semibold text-white mb-4">Authentication</h2>
-        <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-          <p className="text-gray-300 text-sm mb-4">
+        <div className="bg-card/50 border border-border rounded-lg p-6">
+          <p className="text-foreground text-sm mb-4">
             All API requests must include a valid API key in the Authorization header:
           </p>
           <pre className="bg-black/40 rounded-lg p-4 text-sm text-green-300 font-mono">
             Authorization: Bearer mk_live_your_api_key_here
           </pre>
-          <div className="mt-4 space-y-2 text-sm text-gray-400">
-            <p>• Keys start with <code className="text-gray-300">mk_live_</code></p>
+          <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+            <p>• Keys start with <code className="text-foreground">mk_live_</code></p>
             <p>• Keys are hashed with SHA-256 before storage</p>
             <p>• Revoked or expired keys are immediately rejected</p>
             <p>• Each key is scoped to a single workspace</p>
@@ -131,11 +131,11 @@ function OverviewTab() {
       {/* Response Headers */}
       <section>
         <h2 className="text-lg font-semibold text-white mb-4">Response Headers</h2>
-        <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-          <p className="text-gray-300 text-sm mb-4">
+        <div className="bg-card/50 border border-border rounded-lg p-6">
+          <p className="text-foreground text-sm mb-4">
             All API responses include rate limit information in headers:
           </p>
-          <pre className="bg-black/40 rounded-lg p-4 text-sm text-gray-300 font-mono">
+          <pre className="bg-black/40 rounded-lg p-4 text-sm text-foreground font-mono">
 {`X-RateLimit-Limit: 60
 X-RateLimit-Remaining: 59
 X-RateLimit-Reset: 1717800060
@@ -150,7 +150,7 @@ Retry-After: 30  // only on 429 responses`}
 function Step({ number, title, children }: { number: number; title: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-4">
-      <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+      <div className="flex-shrink-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-bold text-sm">
         {number}
       </div>
       <div className="flex-1">
@@ -163,13 +163,13 @@ function Step({ number, title, children }: { number: number; title: string; chil
 
 function RateLimitCard({ plan, requestsPerMinute, requestsPerDay }: { plan: string; requestsPerMinute: number; requestsPerDay: number }) {
   return (
-    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+    <div className="bg-card/50 border border-border rounded-lg p-4">
       <h3 className="text-white font-medium mb-2">{plan}</h3>
       <div className="space-y-1 text-sm">
-        <p className="text-gray-400">
+        <p className="text-muted-foreground">
           <span className="text-white font-mono">{requestsPerMinute.toLocaleString()}</span> requests/min
         </p>
-        <p className="text-gray-400">
+        <p className="text-muted-foreground">
           <span className="text-white font-mono">{requestsPerDay.toLocaleString()}</span> requests/day
         </p>
       </div>
