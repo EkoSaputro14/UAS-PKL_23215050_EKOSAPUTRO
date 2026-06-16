@@ -44,3 +44,7 @@ next-env.d.ts
 .audit/
 compare_*.png
 /uploads/
+corpus-build/
+e2e-screenshots/
+prod_*.png
+*.pdf
