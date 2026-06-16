@@ -17,6 +17,7 @@ export const ALL_FEATURES = [
   "priority_support",
   "lead_capture",
   "lead_notifications",
+  "whatsapp_integration",
 ] as const;
 
 export type FeatureName = (typeof ALL_FEATURES)[number];
@@ -40,6 +41,7 @@ const DEFAULT_FEATURES: Record<string, FeatureName[]> = {
     "priority_support",
     "lead_capture",
     "lead_notifications",
+    "whatsapp_integration",
   ],
   enterprise: [...ALL_FEATURES],
 };
@@ -261,6 +263,7 @@ export function getFeatureDisplayName(feature: FeatureName): string {
     priority_support: "Priority Support",
     lead_capture: "Lead Capture",
     lead_notifications: "Lead Notifications",
+    whatsapp_integration: "WhatsApp Integration",
   };
   return names[feature] || feature;
 }

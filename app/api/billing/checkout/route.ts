@@ -100,11 +100,11 @@ export async function GET() {
         name: "pro",
         displayName: "Pro",
         monthly: {
-          priceId: STRIPE_PRICES.pro_monthly || "not_configured",
+          priceId: STRIPE_PRICES.pro_month || "not_configured",
           price: 2900,
         },
         yearly: {
-          priceId: STRIPE_PRICES.pro_yearly || "not_configured",
+          priceId: STRIPE_PRICES.pro_year || "not_configured",
           price: 29000,
         },
       },
@@ -112,11 +112,11 @@ export async function GET() {
         name: "enterprise",
         displayName: "Enterprise",
         monthly: {
-          priceId: STRIPE_PRICES.enterprise_monthly || "not_configured",
+          priceId: STRIPE_PRICES.enterprise_month || "not_configured",
           price: 9900,
         },
         yearly: {
-          priceId: STRIPE_PRICES.enterprise_yearly || "not_configured",
+          priceId: STRIPE_PRICES.enterprise_year || "not_configured",
           price: 99000,
         },
       },

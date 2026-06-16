@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, resolveWorkspaceId, setWorkspaceContext } from "@/lib/prisma";
 
 export async function GET() {
   try {
@@ -9,21 +9,22 @@ export async function GET() {
     }
 
     const userId = session.user.id!;
+    const workspaceId = await resolveWorkspaceId(userId);
+    await setWorkspaceContext(workspaceId);
 
-    const [totalDocuments, pdfCount, imageCount, allDocs] = await Promise.all([
-      prisma.document.count({ where: { userId } }),
-      prisma.document.count({ where: { userId, fileType: "pdf" } }),
-      prisma.document.count({
-        where: {
-          userId,
-          fileType: { in: ["png", "jpg", "jpeg", "webp", "gif", "image"] },
-        },
-      }),
-      prisma.document.findMany({
-        where: { userId },
-        select: { chunkCount: true },
-      }),
-    ]);
+    // Sequential to ensure RLS workspace context propagates to all queries
+    const totalDocuments = await prisma.document.count({ where: { userId } });
+    const pdfCount = await prisma.document.count({ where: { userId, fileType: "pdf" } });
+    const imageCount = await prisma.document.count({
+      where: {
+        userId,
+        fileType: { in: ["png", "jpg", "jpeg", "webp", "gif", "image"] },
+      },
+    });
+    const allDocs = await prisma.document.findMany({
+      where: { userId },
+      select: { chunkCount: true },
+    });
 
     const totalChunks = allDocs.reduce((sum, doc) => sum + (doc.chunkCount || 0), 0);
     const pdfRatio = totalDocuments > 0 ? Math.round((pdfCount / totalDocuments) * 100) : 0;

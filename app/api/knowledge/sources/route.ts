@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, resolveWorkspaceId, setWorkspaceContext } from "@/lib/prisma";
 
 interface SourceRef {
   documentId?: string;
@@ -13,6 +13,9 @@ export async function GET() {
     if (!session?.user) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const workspaceId = await resolveWorkspaceId(session.user.id! as string);
+    await setWorkspaceContext(workspaceId);
 
     // Get all user's documents with chunk counts
     const documents = await prisma.document.findMany({

@@ -36,11 +36,11 @@ export const stripe = {
 // ============================================================
 
 export const STRIPE_PRICES = {
-  pro_monthly: process.env.STRIPE_PRICE_PRO_MONTHLY || "",
-  pro_yearly: process.env.STRIPE_PRICE_PRO_YEARLY || "",
-  enterprise_monthly: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY || "",
-  enterprise_yearly: process.env.STRIPE_PRICE_ENTERPRISE_YEARLY || "",
-} as const;
+  pro_month: process.env.STRIPE_PRICE_PRO_MONTHLY || "",
+  pro_year: process.env.STRIPE_PRICE_PRO_YEARLY || "",
+  enterprise_month: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY || "",
+  enterprise_year: process.env.STRIPE_PRICE_ENTERPRISE_YEARLY || "",
+};
 
 /** Map plan name + interval to Stripe Price ID */
 export function getStripePriceId(
@@ -322,8 +322,8 @@ export const PLAN_CATALOG: StripePlanInfo[] = [
   {
     name: "pro",
     displayName: "Pro",
-    monthlyPriceId: STRIPE_PRICES.pro_monthly,
-    yearlyPriceId: STRIPE_PRICES.pro_yearly,
+    monthlyPriceId: STRIPE_PRICES.pro_month,
+    yearlyPriceId: STRIPE_PRICES.pro_year,
     monthlyPrice: 2900,
     yearlyPrice: 29000,
     features: [
@@ -341,8 +341,8 @@ export const PLAN_CATALOG: StripePlanInfo[] = [
   {
     name: "enterprise",
     displayName: "Enterprise",
-    monthlyPriceId: STRIPE_PRICES.enterprise_monthly,
-    yearlyPriceId: STRIPE_PRICES.enterprise_yearly,
+    monthlyPriceId: STRIPE_PRICES.enterprise_month,
+    yearlyPriceId: STRIPE_PRICES.enterprise_year,
     monthlyPrice: 9900,
     yearlyPrice: 99000,
     features: [

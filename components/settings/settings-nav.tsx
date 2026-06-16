@@ -14,6 +14,7 @@ import {
   CreditCard,
   Shield,
   Users,
+  MessageCircle,
 } from "lucide-react";
 
 interface NavItem {
@@ -67,6 +68,11 @@ const NAV_ITEMS: NavItem[] = [
     label: "Leads",
     href: "/settings/leads",
     icon: <Users className="h-4 w-4" />,
+  },
+  {
+    label: "WhatsApp",
+    href: "/settings/whatsapp",
+    icon: <MessageCircle className="h-4 w-4" />,
   },
   {
     label: "Billing",
@@ -125,7 +131,7 @@ export default function SettingsNav() {
 
       {/* Mobile tabs */}
       <nav
-        className="lg:hidden overflow-x-auto border-b border-border bg-card -mx-4 -mt-4 px-4"
+        className="lg:hidden overflow-x-auto border-b border-border bg-card px-4"
         aria-label="Settings navigation"
       >
         <ul

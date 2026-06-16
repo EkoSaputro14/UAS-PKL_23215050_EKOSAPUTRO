@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, resolveWorkspaceId, setWorkspaceContext } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,6 +18,9 @@ export async function GET(request: NextRequest) {
     const folderId = searchParams.get("folderId") || "";
     const sort = searchParams.get("sort") || "createdAt";
     const order = searchParams.get("order") || "desc";
+
+    const workspaceId = await resolveWorkspaceId(session.user.id! as string);
+    await setWorkspaceContext(workspaceId);
 
     const where: Record<string, unknown> = { userId: session.user.id! };
 
@@ -48,18 +51,18 @@ export async function GET(request: NextRequest) {
       orderBy.createdAt = "desc";
     }
 
-    const [documents, total] = await Promise.all([
-      prisma.document.findMany({
-        where,
-        orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
-        include: {
-          _count: { select: { chunks: true } },
-        },
-      }),
-      prisma.document.count({ where }),
-    ]);
+    // Run sequentially to ensure both queries use the same connection
+    // (RLS workspace context set via set_config may not propagate across pool connections in parallel)
+    const documents = await prisma.document.findMany({
+      where,
+      orderBy,
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        _count: { select: { chunks: true } },
+      },
+    });
+    const total = await prisma.document.count({ where });
 
     return Response.json({
       documents,

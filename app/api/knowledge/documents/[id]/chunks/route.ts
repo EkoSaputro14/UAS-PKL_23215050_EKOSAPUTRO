@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, resolveWorkspaceId, setWorkspaceContext } from "@/lib/prisma";
 
 export async function GET(
   request: NextRequest,
@@ -11,6 +11,9 @@ export async function GET(
     if (!session?.user) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const workspaceId = await resolveWorkspaceId(session.user.id! as string);
+    await setWorkspaceContext(workspaceId);
 
     const { id } = await params;
     const { searchParams } = new URL(request.url);

@@ -11,7 +11,8 @@ export type AnalyticsEventType =
   | "session_create"
   | "image_ingestion"
   | "image_rejection"
-  | "image_processing_success";
+  | "image_processing_success"
+  | "whatsapp_chat";
 
 // ─── Record Event ─────────────────────────────────────────────────────────────
 
