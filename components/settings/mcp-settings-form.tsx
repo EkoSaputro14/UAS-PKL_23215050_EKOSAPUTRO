@@ -208,7 +208,7 @@ export default function MCPSettingsForm() {
           <h3 className="text-lg font-semibold text-foreground">
             Connected Servers
           </h3>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={handleConnectAll}
               disabled={connecting}
@@ -451,7 +451,7 @@ export default function MCPSettingsForm() {
           Your Mimotes instance also runs as an MCP server. Other AI clients can
           connect to it using this URL:
         </p>
-        <code className="block p-3 bg-muted rounded text-sm text-foreground font-mono">
+        <code className="block p-3 bg-muted rounded text-sm text-foreground font-mono break-all">
           {mcpUrl}
         </code>
         <p className="text-xs text-muted-foreground mt-2">

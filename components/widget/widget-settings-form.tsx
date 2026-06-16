@@ -122,7 +122,7 @@ export default function WidgetSettingsForm() {
     <div className="space-y-8">
       {/* Widget List */}
       <section>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
           <h2 className="text-lg font-semibold text-white">Your Widgets</h2>
           <button
             onClick={() => setShowCreate(true)}
@@ -134,7 +134,7 @@ export default function WidgetSettingsForm() {
 
         {showCreate && (
           <div className="bg-card border border-border rounded-lg p-4 mb-4">
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 value={newWidgetName}
@@ -147,7 +147,7 @@ export default function WidgetSettingsForm() {
                 value={newWidgetSlug}
                 onChange={(e) => setNewWidgetSlug(e.target.value.replace(/[^a-z0-9-]/g, ""))}
                 placeholder="slug"
-                className="w-40 bg-background border border-border rounded px-3 py-2 text-foreground text-sm font-mono"
+                className="sm:w-40 w-full bg-background border border-border rounded px-3 py-2 text-foreground text-sm font-mono"
               />
               <button onClick={createWidget} className="bg-success hover:bg-success/90 text-white px-4 py-2 rounded text-sm">Create</button>
               <button onClick={() => setShowCreate(false)} className="bg-muted hover:bg-muted/80 text-muted-foreground px-4 py-2 rounded text-sm">Cancel</button>

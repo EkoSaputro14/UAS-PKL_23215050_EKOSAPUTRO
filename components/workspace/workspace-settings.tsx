@@ -152,7 +152,7 @@ export default function WorkspaceSettings() {
           <label htmlFor="ws-name" className="block text-sm font-medium text-foreground mb-1.5">
             Nama Workspace
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               id="ws-name"
               type="text"
@@ -198,7 +198,7 @@ export default function WorkspaceSettings() {
             placeholder="Deskripsi singkat tentang workspace ini..."
             className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none"
           />
-          <div className="flex items-center justify-between mt-1">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mt-1">
             <p className="text-xs text-muted-foreground">{description.length}/500</p>
             <Button
               size="sm"
@@ -221,7 +221,7 @@ export default function WorkspaceSettings() {
             <Image className="size-4" />
             Avatar
           </label>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             {/* Avatar Preview */}
             <div className="size-12 shrink-0 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border">
               {avatarUrl ? (
@@ -241,7 +241,7 @@ export default function WorkspaceSettings() {
                 </span>
               )}
             </div>
-            <div className="flex-1 flex gap-2">
+            <div className="flex-1 flex flex-col sm:flex-row gap-2 w-full">
               <input
                 id="ws-avatar"
                 type="text"

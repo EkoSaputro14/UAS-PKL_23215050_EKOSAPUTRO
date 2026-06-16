@@ -316,7 +316,7 @@ export default function AISettingsForm() {
           >
             Base URL
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               id="baseUrl"
               type="url"
