@@ -1,0 +1,103 @@
+graph TD
+    subgraph PUBLIC["🌐 PUBLIC PAGES"]
+        Landing["/ Landing Page<br/>✅ OK"]
+        Login["/login Login<br/>✅ OK"]
+        Register["/register Register<br/>✅ OK"]
+        ChatPublic["/chat Chat Public<br/>✅ OK"]
+        Privacy["/privacy Privacy<br/>❌ 404"]
+        Terms["/terms Terms<br/>❌ 404"]
+    end
+
+    subgraph ADMIN["🔐 ADMIN PAGES"]
+        Dashboard["/dashboard<br/>✅ OK"]
+        Documents["/documents<br/>✅ OK 58 docs"]
+        DocUpload["/documents/upload<br/>✅ OK"]
+        Leads["/leads<br/>✅ OK 11 leads"]
+        WhatsApp["/whatsapp<br/>✅ OK"]
+        ChatAdmin["/chat<br/>✅ OK"]
+    end
+
+    subgraph SETTINGS["⚙️ SETTINGS 12 pages"]
+        SettingsRoot["/settings AI Provider"]
+        SettingsAccount["account"]
+        SettingsWorkspace["workspace"]
+        SettingsSecurity["security"]
+        SettingsNotifications["notifications"]
+        SettingsAPIKeys["api-keys"]
+        SettingsMCP["mcp"]
+        SettingsWidget["widget 4 widgets"]
+        SettingsLeads["leads"]
+        SettingsWhatsApp["whatsapp"]
+        SettingsBilling["billing"]
+        SettingsLanguage["language"]
+        SettingsAudit["audit 556 events"]
+    end
+
+    subgraph KB["📚 KNOWLEDGE BASE"]
+        KBDocuments["/knowledge/documents<br/>✅ OK 58 docs"]
+        KBChunks["/knowledge/chunks<br/>✅ OK 108K chunks"]
+        KBSearch["/knowledge/search<br/>✅ OK"]
+        KBSources["/knowledge/sources<br/>✅ OK"]
+        KBUpload404["/knowledge/documents/upload<br/>❌ 404"]
+    end
+
+    subgraph ANALYTICS["📊 ANALYTICS"]
+        AnalyticsRoot["/analytics<br/>→ usage"]
+        AnalyticsChat["chat"]
+        AnalyticsCost["cost"]
+        AnalyticsUsage["usage"]
+        AnalyticsLeads["leads"]
+    end
+
+    subgraph AISEC["🤖 AI"]
+        AIRoot["/ai<br/>→ playground"]
+        AIPlayground["/ai/playground<br/>✅ OK"]
+        AIPrompts["prompts"]
+        AINewPrompt["prompts/new"]
+        AICompare404["/ai/compare<br/>❌ 404"]
+    end
+
+    Landing -->|Get Started| Register
+    Landing -->|Log In| Login
+    Landing -->|Privacy| Privacy
+    Landing -->|Terms| Terms
+    Login -->|Success| Dashboard
+    Register -->|Success| Dashboard
+
+    Dashboard -->|Dokumen| KBDocuments
+    Dashboard -->|Percakapan| ChatAdmin
+    Dashboard -->|Leads| Leads
+    Dashboard -->|Upload| DocUpload
+
+    SettingsRoot --> SettingsAccount
+    SettingsRoot --> SettingsWorkspace
+    SettingsRoot --> SettingsSecurity
+    SettingsRoot --> SettingsNotifications
+    SettingsRoot --> SettingsAPIKeys
+    SettingsRoot --> SettingsMCP
+    SettingsRoot --> SettingsWidget
+    SettingsRoot --> SettingsLeads
+    SettingsRoot --> SettingsWhatsApp
+    SettingsRoot --> SettingsBilling
+    SettingsRoot --> SettingsLanguage
+    SettingsRoot --> SettingsAudit
+
+    KBDocuments -->|Upload| KBUpload404
+
+    AnalyticsRoot --> AnalyticsChat
+    AnalyticsRoot --> AnalyticsCost
+    AnalyticsRoot --> AnalyticsUsage
+    AnalyticsRoot --> AnalyticsLeads
+
+    AIRoot --> AIPlayground
+    AIPlayground -->|Compare| AICompare404
+    AINewPrompt -->|Test| AIPlayground
+
+    classDef deadLink fill:#ff4444,stroke:#cc0000,color:#fff,font-weight:bold
+    classDef okPage fill:#44bb44,stroke:#228822,color:#fff
+    classDef redirect fill:#ffaa00,stroke:#cc8800,color:#000
+    classDef settings fill:#6b8cff,stroke:#4466cc,color:#fff
+
+    class Privacy,Terms,KBUpload404,AICompare404 deadLink
+    class AnalyticsRoot,AIRoot redirect
+    class SettingsAccount,SettingsWorkspace,SettingsSecurity,SettingsNotifications,SettingsAPIKeys,SettingsMCP,SettingsWidget,SettingsLeads,SettingsWhatsApp,SettingsBilling,SettingsLanguage,SettingsAudit settings

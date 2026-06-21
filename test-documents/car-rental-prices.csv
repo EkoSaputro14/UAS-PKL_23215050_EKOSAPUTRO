@@ -1,0 +1,10 @@
+Mobil,Tipe,Harga_per_Hari,Kapasitas,Transmisi,AC,Status
+Toyota Avanza,MPV,350000,7,Manual,Ada,Tersedia
+Toyota Innova,MPV,500000,7,Otomatis,Ada,Tersedia
+Honda Brio,City Car,250000,4,Otomatis,Ada,Tersedia
+Honda Jazz,City Car,300000,5,Otomatis,Ada,Tersedia
+Toyota Fortuner,SUV,800000,7,Otomatis,Ada,Tersedia
+Mitsubishi Xpander,MPV,400000,7,Otomatis,Ada,Tersedia
+Daihatsu Xenia,MPV,300000,7,Manual,Ada,Tersedia
+Suzuki Ertiga,MPV,350000,7,Otomatis,Ada,Tersedia
+

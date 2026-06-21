@@ -1,0 +1,1 @@
+This is a test document about PostgreSQL database management. PostgreSQL is a powerful open source relational database.
