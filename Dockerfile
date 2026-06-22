@@ -61,6 +61,7 @@ COPY app ./app
 COPY components ./components
 COPY hooks ./hooks
 COPY lib ./lib
+COPY middleware.ts ./middleware.ts
 COPY public ./public
 
 # Build the application
