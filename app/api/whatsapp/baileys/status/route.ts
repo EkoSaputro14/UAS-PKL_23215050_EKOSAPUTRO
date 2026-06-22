@@ -3,17 +3,6 @@ import { NextResponse } from "next/server";
 const BAILEYS_URL = process.env.BAILEYS_URL || "http://localhost:3002";
 const BAILEYS_API_KEY = process.env.BAILEYS_API_KEY || "baileys-secret-key";
 
-/**
- * Legacy baileys root route — now redirects to /status sub-route.
- * The old Express proxy has been replaced with proper Next.js App Router routes.
- *
- * Available routes:
- *   GET  /api/whatsapp/baileys/status   — Connection status
- *   GET  /api/whatsapp/baileys/qr       — QR code for pairing
- *   POST /api/whatsapp/baileys/send     — Send message
- *   POST /api/whatsapp/baileys/logout   — Disconnect & clear session
- *   POST /api/whatsapp/baileys/incoming — Webhook receiver (called by Baileys service)
- */
 export async function GET() {
   try {
     const response = await fetch(`${BAILEYS_URL}/status`, {

@@ -48,3 +48,4 @@ corpus-build/
 e2e-screenshots/
 prod_*.png
 *.pdf
+baileys-service/node_modules/

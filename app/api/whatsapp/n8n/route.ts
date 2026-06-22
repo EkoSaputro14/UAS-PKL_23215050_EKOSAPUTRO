@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Generate RAG response
-    const response = await generateRAGResponse(message, session.id, workspaceId);
+    const ragResult = await generateRAGResponse(message, 5, workspaceId);
+    const response = ragResult.answer || "Maaf, saya tidak dapat menjawab pertanyaan Anda saat ini.";
 
     // Save assistant message
     await prisma.chatMessage.create({
