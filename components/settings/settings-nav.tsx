@@ -16,6 +16,7 @@ import {
   Shield,
   Users,
   MessageCircle,
+  Phone,
   ArrowLeft,
   Globe,
   Menu,
@@ -90,6 +91,12 @@ const NAV_ITEMS: NavItem[] = [
     fallback: "WhatsApp",
     href: "/settings/whatsapp",
     icon: <MessageCircle className="h-4 w-4" />,
+  },
+  {
+    labelKey: "settings.baileys",
+    fallback: "Baileys",
+    href: "/settings/baileys",
+    icon: <Phone className="h-4 w-4" />,
   },
   {
     labelKey: "settings.billing",
