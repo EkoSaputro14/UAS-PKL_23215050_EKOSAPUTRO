@@ -11,6 +11,7 @@
 - **Database**: PostgreSQL 16 + pgvector extension
 - **Auth**: NextAuth v5 (beta) — Credentials provider, JWT strategy
 - **AI**: Multi-provider (Mimo Pro, OpenAI, LM Studio, Ollama, OpenRouter, Custom) via OpenAI-compatible API
+- **Theme**: Light/Dark/System + 3 color presets (Copper, MiMo Blue, Sage)
 - **Deployment**: Docker Compose (multi-stage build)
 
 ## Arsitektur Sistem

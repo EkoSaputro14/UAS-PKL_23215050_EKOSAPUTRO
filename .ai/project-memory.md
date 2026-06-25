@@ -61,6 +61,7 @@ Browser → Cloudflare Tunnel → Docker (port 3100)
 | AI SDK | OpenAI SDK + Vercel AI SDK | 6.41.0 / 6.0.194 |
 | Styling | Tailwind CSS | v4 |
 | UI | shadcn/ui (base-nova) | 4.10.0 |
+| Theme | next-themes + custom color presets | — |
 | Charts | Recharts | 3.8.1 |
 | Billing | Stripe (checkout, portal, webhook) | — |
 | Rate Limiting | @upstash/ratelimit + in-memory fallback | — |
@@ -433,6 +434,7 @@ mimotes/
 - Model comparison (compare mode)
 - Notification system
 - Document folders
+- **Theme system** (Light/Dark/System + 3 color presets: Copper, MiMo Blue, Sage)
 
 ---
 
@@ -456,6 +458,7 @@ mimotes/
 | **Email** | `lib/email/*` |
 | **MCP** | `lib/mcp/*`, `app/api/mcp/*` |
 | **Multimodal** | `lib/rag/image-processor.ts`, `lib/rag/vision-provider.ts` |
+| **Theme** | `app/globals.css`, `lib/use-color-preset.ts`, `components/color-preset-initializer.tsx`, `components/settings/appearance-settings-form.tsx`, `components/layout/top-nav.tsx` |
 | **Database** | `prisma/schema.prisma`, `lib/prisma.ts` |
 | **Deploy** | `Dockerfile`, `docker-compose.yml`, `docker-entrypoint.sh` |
 
@@ -496,6 +499,8 @@ mimotes/
 - **Embedding fallback**: When API embedding fails → local feature hashing (threshold 0.08)
 - **Streaming null safety**: `chunk.choices?.[0]?.delta?.content` (cross-provider compat)
 - **Settings endpoint**: `/api/admin/settings` saves to `settings` (GLOBAL), NOT `workspace_settings`
+- **Color presets**: Copper (default) / MiMo Blue / Sage — class-based CSS override on `<html>`, persisted in `localStorage` as `mimotes-color-preset`
+- **Theme transition**: 200ms ease-out on body background/color/border-color
 
 ---
 

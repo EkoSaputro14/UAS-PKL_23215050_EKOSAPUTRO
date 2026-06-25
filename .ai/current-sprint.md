@@ -60,6 +60,16 @@
 - Priority: Workspace > Global > Env
 - AsyncLocalStorage for workspace context (bypasses RLS connection pool)
 
+### Theme System ✅
+- Light / Dark / System toggle (next-themes)
+- 3 Color Presets: Copper, MiMo Blue, Sage
+- CSS class-based override (`:root`, `.theme-blue`, `.theme-sage`) with dark variants
+- Anti-FOUC inline script applies class before React hydrate
+- Hook `useColorPreset()` persists to localStorage (`mimotes-color-preset`)
+- TopNav: dual dropdown (Theme + Color Preset)
+- Settings → Appearance: palette selector cards with live preview
+- Smooth CSS transition 200ms on body background/color/border
+
 ---
 
 ## Remaining Issues
