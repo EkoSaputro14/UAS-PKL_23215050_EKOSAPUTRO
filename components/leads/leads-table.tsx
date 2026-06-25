@@ -26,9 +26,15 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const SCORE_COLORS: Record<string, string> = {
-  high: "bg-destructive/10 text-destructive",
-  medium: "bg-warning/10 text-warning",
-  low: "bg-muted text-muted-foreground",
+  high: "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400",
+  medium: "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
+  low: "bg-slate-50 text-slate-500 dark:bg-slate-950/30 dark:text-slate-400",
+};
+
+const SCORE_LABELS: Record<string, string> = {
+  high: "Hot",
+  medium: "Warm",
+  low: "Cold",
 };
 
 export function LeadsTable() {
@@ -163,7 +169,7 @@ export function LeadsTable() {
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${SCORE_COLORS[lead.leadScore || "low"]}`}
                     >
-                      {lead.leadScore || "low"}
+                      {SCORE_LABELS[lead.leadScore || "low"]}
                     </span>
                   </td>
                   <td className="p-3">

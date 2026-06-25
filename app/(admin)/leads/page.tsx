@@ -18,8 +18,8 @@ import {
   Eye,
   Filter,
   Flame,
-  Star,
-  Snowflake,
+  TrendingUp,
+  CircleDot,
 } from "lucide-react";
 import { NotificationBar } from "@/components/leads/notification-bar";
 
@@ -59,14 +59,14 @@ interface LeadsData {
 
 const SCORE_ICONS: Record<string, React.ReactNode> = {
   high: <Flame className="size-4" />,
-  medium: <Star className="size-4" />,
-  low: <Snowflake className="size-4" />,
+  medium: <TrendingUp className="size-4" />,
+  low: <CircleDot className="size-4" />,
 };
 
 const SCORE_COLORS: Record<string, string> = {
-  high: "bg-red-50 text-red-600 border-red-200",
-  medium: "bg-amber-50 text-amber-600 border-amber-200",
-  low: "bg-gray-50 text-gray-500 border-gray-200",
+  high: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/50",
+  medium: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50",
+  low: "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-950/30 dark:text-slate-400 dark:border-slate-800/50",
 };
 
 function timeAgo(dateStr: string | null): string {
@@ -162,11 +162,11 @@ export default function LeadsPage() {
           </span>
           <span className="flex items-center gap-1">
             <span className="font-medium">{data.stats.medium}</span>
-            <span className="text-amber-500 flex items-center gap-1"><Star className="size-3.5" /> Warm</span>
+            <span className="text-amber-500 flex items-center gap-1"><TrendingUp className="size-3.5" /> Warm</span>
           </span>
           <span className="flex items-center gap-1">
             <span className="font-medium">{data.stats.low}</span>
-            <span className="text-gray-400 flex items-center gap-1"><Snowflake className="size-3.5" /> Cold</span>
+            <span className="text-slate-400 flex items-center gap-1"><CircleDot className="size-3.5" /> Cold</span>
           </span>
         </div>
       )}
@@ -229,7 +229,7 @@ export default function LeadsPage() {
           {data.leads.map((lead) => (
             <div
               key={`${lead.source}-${lead.id}`}
-              className="flex items-center gap-3 p-3 rounded-lg border bg-white hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-3 p-3 rounded-lg border bg-card text-card-foreground hover:bg-accent/5 transition-colors cursor-pointer"
             >
               {/* Score Badge */}
               <span
@@ -241,15 +241,19 @@ export default function LeadsPage() {
               {/* Lead Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm truncate">
+                  <span className="font-medium text-sm text-foreground truncate">
                     {lead.name || "Anonymous"}
                   </span>
                   {lead.status === "new" && (
-                    <span className="w-2 h-2 rounded-full bg-red-500" />
+                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" title="Lead baru" />
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                  {lead.intent && <span>{lead.intent}</span>}
+                  {lead.intent && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground text-[10px]">
+                      {lead.intent}
+                    </span>
+                  )}
                   {lead.budget && <span>💰 {lead.budget}</span>}
                   {lead.location && <span>📍 {lead.location}</span>}
                 </div>

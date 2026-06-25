@@ -45,9 +45,15 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const SCORE_COLORS: Record<string, string> = {
-  high: "bg-destructive",
-  medium: "bg-warning",
-  low: "bg-muted",
+  high: "bg-red-500",
+  medium: "bg-amber-500",
+  low: "bg-slate-400",
+};
+
+const SCORE_LABELS: Record<string, string> = {
+  high: "Hot",
+  medium: "Warm",
+  low: "Cold",
 };
 
 export function LeadAnalytics() {
@@ -156,7 +162,7 @@ export function LeadAnalytics() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  High-Intent Leads
+                  Hot Leads
                 </p>
                 <p className="mt-1 text-3xl font-bold text-foreground">
                   {data.leadsByScore["high"] || 0}
@@ -249,7 +255,7 @@ export function LeadAnalytics() {
                 return (
                   <div key={score} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="capitalize font-medium">{score}</span>
+                      <span className="font-medium">{SCORE_LABELS[score] || score}</span>
                       <span className="text-muted-foreground">
                         {count} ({percentage}%)
                       </span>
@@ -381,8 +387,8 @@ export function LeadAnalytics() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Zap className="size-5 text-destructive" />
-              Recent High-Intent Leads
+              <Zap className="size-5 text-red-500" />
+              Hot Leads Terbaru
             </CardTitle>
           </CardHeader>
           <CardContent>
