@@ -22,10 +22,12 @@ import {
   CircleDot,
   Users,
   MessageSquare,
-  ChevronRight,
+  List,
+  LayoutGrid,
 } from "lucide-react";
 import { NotificationBar } from "@/components/leads/notification-bar";
 import { LeadDetailDrawer } from "@/components/leads/lead-detail-drawer";
+import { KanbanBoard } from "@/components/leads/kanban-board";
 
 interface LeadItem {
   id: string;
@@ -86,6 +88,7 @@ export default function LeadsPage() {
   const [filterScore, setFilterScore] = useState("all");
   const [selectedLead, setSelectedLead] = useState<LeadItem | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
 
   const fetchLeads = useCallback(async () => {
     setLoading(true);
@@ -231,6 +234,30 @@ export default function LeadsPage() {
           />
         </div>
         <div className="flex gap-2">
+          <div className="flex items-center rounded-lg border bg-card p-0.5">
+            <button
+              onClick={() => setViewMode("list")}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                viewMode === "list"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <List className="size-3.5" />
+              List
+            </button>
+            <button
+              onClick={() => setViewMode("kanban")}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                viewMode === "kanban"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <LayoutGrid className="size-3.5" />
+              Kanban
+            </button>
+          </div>
           <Select value={filterSource} onValueChange={setFilterSource}>
             <SelectTrigger className="w-[130px] h-9">
               <Filter className="size-3.5 mr-1.5" />
@@ -279,12 +306,20 @@ export default function LeadsPage() {
       />
 
       {/* ═══════════════════════════════════════════════════════
-          LEAD LIST — COMPACT CARDS
+          LEAD LIST — LIST OR KANBAN
           ═══════════════════════════════════════════════════════ */}
       {loading ? (
         <LoadingState />
       ) : !data || data.leads.length === 0 ? (
         <EmptyState />
+      ) : viewMode === "kanban" ? (
+        <KanbanBoard
+          leads={data.leads}
+          onLeadClick={(lead) => {
+            setSelectedLead(lead);
+            setDrawerOpen(true);
+          }}
+        />
       ) : (
         <div className="space-y-1">
           {data.leads.map((lead) => {

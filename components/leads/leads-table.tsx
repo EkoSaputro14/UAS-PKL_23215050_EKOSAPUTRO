@@ -3,7 +3,15 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, Search, ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Download, Search, ChevronLeft, ChevronRight, Filter, MessageCircle, Mail } from "lucide-react";
 
 interface Lead {
   id: string;
@@ -112,18 +120,19 @@ export function LeadsTable() {
             className="w-48"
           />
           <Filter className="h-4 w-4 text-muted-foreground" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="border rounded px-2 py-1 text-sm"
-          >
-            <option value="">All Status</option>
-            <option value="new">New</option>
-            <option value="contacted">Contacted</option>
-            <option value="qualified">Qualified</option>
-            <option value="converted">Converted</option>
-            <option value="lost">Lost</option>
-          </select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[150px] h-9">
+              <SelectValue placeholder="Semua Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Semua Status</SelectItem>
+              <SelectItem value="new">🔴 Baru</SelectItem>
+              <SelectItem value="contacted">🟡 Dihubungi</SelectItem>
+              <SelectItem value="qualified">🔵 Qualified</SelectItem>
+              <SelectItem value="converted">🟢 Converted</SelectItem>
+              <SelectItem value="lost">⚫ Lost</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <Button variant="outline" onClick={exportCSV}>
           <Download className="h-4 w-4 mr-2" />
@@ -187,17 +196,21 @@ export function LeadsTable() {
                     {new Date(lead.startedAt).toLocaleDateString()}
                   </td>
                   <td className="p-3">
-                    <select
+                    <Select
                       value={lead.leadStatus || "new"}
-                      onChange={(e) => updateStatus(lead.id, e.target.value)}
-                      className="border rounded px-2 py-1 text-xs"
+                      onValueChange={(value) => updateStatus(lead.id, value)}
                     >
-                      <option value="new">New</option>
-                      <option value="contacted">Contacted</option>
-                      <option value="qualified">Qualified</option>
-                      <option value="converted">Converted</option>
-                      <option value="lost">Lost</option>
-                    </select>
+                      <SelectTrigger className="w-[130px] h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="new">🔴 Baru</SelectItem>
+                        <SelectItem value="contacted">🟡 Dihubungi</SelectItem>
+                        <SelectItem value="qualified">🔵 Qualified</SelectItem>
+                        <SelectItem value="converted">🟢 Converted</SelectItem>
+                        <SelectItem value="lost">⚫ Lost</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </td>
                 </tr>
               ))
