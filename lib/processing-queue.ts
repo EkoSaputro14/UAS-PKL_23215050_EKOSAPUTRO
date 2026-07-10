@@ -32,7 +32,6 @@ export interface ProcessingError {
 export interface QueueJob {
   id: string;
   type: "document" | "image";
-  workspaceId: string;
   enqueueTime: number;
   attempts: number;
   execute: () => Promise<void>;

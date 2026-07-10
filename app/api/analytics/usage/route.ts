@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { requireFeature } from "@/lib/entitlements";
-import { resolveWorkspaceId } from "@/lib/prisma";
 import { getUsageAnalytics, getDateRangeParams } from "@/lib/analytics";
 
 export async function GET(request: NextRequest) {
@@ -13,9 +11,6 @@ export async function GET(request: NextRequest) {
 
     const range = (request.nextUrl.searchParams.get("range") as "7d" | "30d" | "90d") || "30d";
     const { startDate, endDate } = getDateRangeParams(range);
-
-    const workspaceId = await resolveWorkspaceId(session.user.id! as string);
-    await requireFeature(workspaceId, "analytics");
 
     const data = await getUsageAnalytics(startDate, endDate);
 

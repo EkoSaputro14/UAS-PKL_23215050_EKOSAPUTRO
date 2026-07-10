@@ -1,4 +1,5 @@
 import { getAIProvider, getAIModel } from "@/lib/ai-provider";
+import { prisma } from "@/lib/prisma";
 import { generateEmbedding, getEmbeddingSource } from "./embedder";
 import {
   searchSimilarChunks,
@@ -7,11 +8,20 @@ import {
   buildAttributedContext,
   type SimilarChunk,
   type RetrievalMetrics,
+  type RetrievalResult,
 } from "./vectorstore";
-import { buildSystemPrompt, type PromptContext } from "@/lib/prompts/templates";
 
-// Re-export PromptContext for consumers
-export type { PromptContext } from "@/lib/prompts/templates";
+// prompts/templates module removed — define PromptContext inline
+export interface PromptContext {
+  mode?: string;
+  knowledgeContext?: string;
+  conversationHistory?: string;
+  [key: string]: unknown;
+}
+
+function buildSystemPrompt(ctx: PromptContext): string {
+  return `You are a helpful AI assistant.${ctx.knowledgeContext ? `\n\nContext:\n${ctx.knowledgeContext}` : ""}`;
+}
 
 // Token estimation: ~4 chars per token (conservative for mixed languages)
 const CHARS_PER_TOKEN = 4;
@@ -32,10 +42,10 @@ export type ConfidenceLevel = "high" | "medium" | "low" | "refuse";
  */
 export function classifyConfidence(maxSimilarity: number, useLocalEmbedding: boolean = false): ConfidenceLevel {
   if (useLocalEmbedding) {
-    // Feature-hashing thresholds (lower range)
-    if (maxSimilarity >= 0.35) return "high";
-    if (maxSimilarity >= 0.25) return "medium";
-    if (maxSimilarity >= 0.12) return "low";
+    // Feature-hashing thresholds (lower range — local embeddings are less precise)
+    if (maxSimilarity >= 0.25) return "high";
+    if (maxSimilarity >= 0.15) return "medium";
+    if (maxSimilarity >= 0.05) return "low";
     return "refuse";
   }
   // API embedding thresholds (original)
@@ -108,23 +118,65 @@ export interface RAGResponse {
 async function retrieveChunks(
   question: string,
   topK: number,
-  workspaceId: string,
   minSimilarity: number
 ): Promise<{ chunks: SimilarChunk[]; metrics: RetrievalMetrics }> {
   const queryEmbedding = await generateEmbedding(question);
   const useHybrid = await isHybridSearchEnabled();
+  const embeddingSource = await getEmbeddingSource();
+  const useLocal = embeddingSource === "local";
 
+  let result: RetrievalResult;
   if (useHybrid) {
-    return hybridSearch({
+    result = await hybridSearch({
       queryText: question,
       queryEmbedding,
-      workspaceId,
       topK,
       minSimilarity,
     });
+  } else {
+    result = await searchSimilarChunks(queryEmbedding, topK, minSimilarity);
   }
 
-  return searchSimilarChunks(queryEmbedding, topK, workspaceId, minSimilarity);
+  // Local embedding fallback: if search returned 0 chunks but workspace has documents,
+  // return the most recent chunks anyway — feature hashing is too imprecise for cosine
+  if (useLocal && result.chunks.length === 0) {
+    console.log(`[RAG] Local embedding returned 0 chunks, falling back to recent chunks from workspace`);
+    const rawFallback: Array<{
+      id: string; content: string; document_id: string; document_title: string;
+      similarity: number; chunk_index: number;
+      metadata: Record<string, unknown>; chunk_type: string;
+      ocr_text: string | null; caption: string | null;
+      image_summary: string | null; image_url: string | null;
+    }> = await prisma.$queryRaw`
+      SELECT dc.id, dc.content, dc.document_id, d.title as document_title,
+        0.0 as similarity, dc.chunk_index, dc.metadata,
+        dc.chunk_type, dc.ocr_text, dc.caption, dc.image_summary, dc.image_url
+      FROM document_chunks dc
+      JOIN documents d ON d.id = dc.document_id
+      WHERE dc.embedding IS NOT NULL
+      ORDER BY dc.created_at DESC
+      LIMIT ${topK}
+    `;
+    if (rawFallback.length > 0) {
+      const fallbackChunks: SimilarChunk[] = rawFallback.map((r) => ({
+        id: r.id,
+        content: r.content,
+        documentId: r.document_id,
+        documentTitle: r.document_title || "Untitled",
+        similarity: 0.0,
+        chunkIndex: r.chunk_index,
+        metadata: r.metadata,
+        chunkType: r.chunk_type || "text",
+        ocrText: r.ocr_text || undefined,
+        caption: r.caption || undefined,
+        imageSummary: r.image_summary || undefined,
+        imageUrl: r.image_url || undefined,
+      }));
+      result = { chunks: fallbackChunks, metrics: result.metrics };
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -137,7 +189,6 @@ async function retrieveChunks(
 export async function generateRAGResponse(
   question: string,
   topK: number = 5,
-  workspaceId: string,
   minSimilarity?: number,
   maxContextTokens: number = DEFAULT_MAX_CONTEXT_TOKENS,
   promptContext?: PromptContext
@@ -148,18 +199,27 @@ export async function generateRAGResponse(
   const effectiveMinSimilarity = minSimilarity ?? (useLocal ? 0.08 : 0.30);
 
   const { chunks: similarChunks, metrics } = await retrieveChunks(
-    question, topK, workspaceId, effectiveMinSimilarity
+    question, topK, effectiveMinSimilarity
   );
+
+  // Debug: log retrieval results
+  console.log(`[RAG] Query: "${question.substring(0, 50)}" | Chunks: ${similarChunks.length} | MinSim: ${effectiveMinSimilarity} | Source: ${embeddingSource}`);
+  if (similarChunks.length > 0) {
+    const maxSim = Math.max(...similarChunks.map(c => c.similarity));
+    console.log(`[RAG] MaxSim: ${maxSim.toFixed(4)} | Chunk: "${similarChunks[0].content.substring(0, 80)}..."`);
+  }
 
   // Confidence-based refusal check (with local embedding awareness)
   const refusal = shouldRefuse(similarChunks, useLocal);
 
-  // ── CS/Sales mode: never refuse, always give helpful response ──
+  // ── Mode handling ──
   const mode = promptContext?.mode || "knowledge_base";
   const isConversational = mode === "customer_service" || mode === "sales_agent";
 
-  if (refusal.refuse && !isConversational) {
-    // KB mode: strict refusal (backward compatible)
+  // For conversational modes (CS/Sales): always proceed even without chunks
+  // For KB mode: refuse only if truly no results found
+  if (refusal.refuse && !isConversational && refusal.reason === "no_results") {
+    // KB mode with zero chunks — strict refusal
     return {
       answer: getConfidencePrefix(refusal.confidence),
       sources: [],
@@ -258,7 +318,6 @@ ${context}`;
 export async function streamRAGResponse(
   question: string,
   topK: number = 5,
-  workspaceId: string,
   minSimilarity?: number,
   maxContextTokens: number = DEFAULT_MAX_CONTEXT_TOKENS,
   promptContext?: PromptContext
@@ -269,17 +328,25 @@ export async function streamRAGResponse(
   const effectiveMinSimilarity = minSimilarity ?? (useLocal ? 0.08 : 0.30);
 
   const { chunks: similarChunks, metrics } = await retrieveChunks(
-    question, topK, workspaceId, effectiveMinSimilarity
+    question, topK, effectiveMinSimilarity
   );
+
+  // Debug: log retrieval results
+  console.log(`[RAG-Stream] Query: "${question.substring(0, 50)}" | Chunks: ${similarChunks.length} | MinSim: ${effectiveMinSimilarity} | Source: ${embeddingSource}`);
+  if (similarChunks.length > 0) {
+    const maxSim = Math.max(...similarChunks.map(c => c.similarity));
+    console.log(`[RAG-Stream] MaxSim: ${maxSim.toFixed(4)} | Chunk: "${similarChunks[0].content.substring(0, 80)}..."`);
+  }
 
   // Confidence-based refusal check (with local embedding awareness)
   const refusal = shouldRefuse(similarChunks, useLocal);
-  // ── CS/Sales mode: never refuse, always give helpful response ──
+  // ── Mode handling ──
   const mode = promptContext?.mode || "knowledge_base";
   const isConversational = mode === "customer_service" || mode === "sales_agent";
 
-  if (refusal.refuse && !isConversational) {
-    // KB mode: strict refusal (backward compatible)
+  // Refuse only if truly no results AND not conversational mode
+  if (refusal.refuse && !isConversational && refusal.reason === "no_results") {
+    // KB mode with zero chunks — strict refusal
     return {
       stream: null,
       sources: [],

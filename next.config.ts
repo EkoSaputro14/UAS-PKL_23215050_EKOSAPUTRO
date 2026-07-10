@@ -66,6 +66,25 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
         ],
       },
+      // HTML pages — never cache (prevents stale content in dev)
+      {
+        source: "/((?!_next/static|_next/image|api/).*)",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0" },
+          { key: "Pragma", value: "no-cache" },
+          { key: "Expires", value: "0" },
+          { key: "CDN-Cache-Control", value: "no-store, max-age=0" },
+          { key: "Cloudflare-CDN-Cache-Control", value: "no-store, max-age=0" },
+          { key: "Surrogate-Control", value: "no-store, max-age=0" },
+        ],
+      },
+      // Static assets with content hashes — safe to cache long-term
+      {
+        source: "/_next/static/(.*)",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
     ];
   },
 };

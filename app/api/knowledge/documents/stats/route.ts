@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma, resolveWorkspaceId, setWorkspaceContext } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
@@ -9,8 +9,6 @@ export async function GET() {
     }
 
     const userId = session.user.id!;
-    const workspaceId = await resolveWorkspaceId(userId);
-    await setWorkspaceContext(workspaceId);
 
     // Sequential to ensure RLS workspace context propagates to all queries
     const totalDocuments = await prisma.document.count({ where: { userId } });

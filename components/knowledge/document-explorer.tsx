@@ -342,7 +342,7 @@ export default function DocumentExplorer({ folderId = null }: DocumentExplorerPr
   }
 
   async function handleDelete(id: string, title: string) {
-    if (!confirm(`Delete "${title}"? This will remove all chunks and cannot be undone.`)) return;
+    if (!confirm(`Delete "${title}"? This will remove all sections and cannot be undone.`)) return;
     setDeleting(id);
     try {
       const res = await fetch(`/api/documents/${id}`, { method: "DELETE" });
@@ -888,7 +888,7 @@ export default function DocumentExplorer({ folderId = null }: DocumentExplorerPr
               </svg>
               <h3 className="font-semibold">Smart Sections</h3>
             </div>
-            <p className="text-sm text-muted-foreground">Optimize your knowledge chunks for better retrieval</p>
+            <p className="text-sm text-muted-foreground">Optimize your knowledge sections for better retrieval</p>
           </Link>
         </div>
       )}

@@ -106,7 +106,7 @@ export function TopDocuments() {
                     {doc.title}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {doc.chunkCount} chunks · {doc.fileType.toUpperCase()}
+                    {doc.chunkCount} {doc.chunkCount === 1 ? "chunk" : "chunks"} · {doc.fileType.toUpperCase()}
                   </p>
                 </div>
                 <Badge variant="secondary" className="shrink-0 text-xs">

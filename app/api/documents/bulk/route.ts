@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma, resolveWorkspaceId } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { deleteDocumentChunks } from "@/lib/rag/vectorstore";
 import { unlink } from "fs/promises";
 import { join } from "path";
@@ -19,11 +19,6 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "IDs harus diisi" }, { status: 400 });
     }
 
-    const workspaceId = await resolveWorkspaceId(
-      session.user.id!,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (session as any).user.selectedWorkspaceId
-    );
 
     // Verify all documents belong to this user
     const documents = await prisma.document.findMany({
@@ -87,16 +82,11 @@ export async function PATCH(request: NextRequest) {
       return Response.json({ error: "IDs harus diisi" }, { status: 400 });
     }
 
-    const workspaceId = await resolveWorkspaceId(
-      session.user.id!,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (session as any).user.selectedWorkspaceId
-    );
 
     // Verify folder exists if folderId is provided
     if (folderId) {
       const folder = await prisma.folder.findFirst({
-        where: { id: folderId, workspaceId },
+        where: { id: folderId },
       });
       if (!folder) {
         return Response.json({ error: "Folder tidak ditemukan" }, { status: 404 });

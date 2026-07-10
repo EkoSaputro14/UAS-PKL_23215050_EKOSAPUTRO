@@ -545,7 +545,7 @@ export default function OnboardingWizard() {
                     <span className="text-sm text-foreground flex-1 truncate">{item.name}</span>
                     {item.status === "uploading" && <Loader2 className="size-4 animate-spin text-primary" />}
                     {item.status === "done" && (
-                      <span className="text-xs text-emerald-600 font-medium">✓ {item.chunks} chunks</span>
+                      <span className="text-xs text-emerald-600 font-medium">✓ {item.chunks} {item.chunks === 1 ? "chunk" : "chunks"}</span>
                     )}
                     {item.status === "error" && <span className="text-xs text-destructive">Gagal</span>}
                   </div>

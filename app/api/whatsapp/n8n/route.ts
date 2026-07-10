@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
     if (!session) {
       session = await prisma.chatSession.create({
         data: {
-          workspaceId,
           title: `WhatsApp: ${phone}`,
         },
       });

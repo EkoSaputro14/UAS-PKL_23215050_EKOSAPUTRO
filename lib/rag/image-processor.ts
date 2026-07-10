@@ -89,55 +89,72 @@ async function paddleOCR(imagePath: string): Promise<{
 }> {
   const startTime = Date.now();
 
-  try {
-    const baseUrl = await getPaddleOCRUrl();
+  const MAX_RETRIES = 2;
+  const RETRY_DELAY_MS = 2000;
 
-    // Read image as base64
-    const imageBuffer = await readFile(imagePath);
-    const imageBase64 = imageBuffer.toString("base64");
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const baseUrl = await getPaddleOCRUrl();
 
-    // Call PaddleOCR sidecar
-    const response = await fetch(`${baseUrl}/ocr`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        image_base64: imageBase64,
-        language: "latin",
-      }),
-      signal: AbortSignal.timeout(30000), // 30s timeout
-    });
+      // Read image as base64
+      const imageBuffer = await readFile(imagePath);
+      const imageBase64 = imageBuffer.toString("base64");
 
-    if (!response.ok) {
-      throw new Error(`PaddleOCR HTTP ${response.status}`);
+      // Call PaddleOCR sidecar
+      const response = await fetch(`${baseUrl}/ocr`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image_base64: imageBase64,
+          language: "latin",
+        }),
+        signal: AbortSignal.timeout(60000), // 60s timeout (model may need to load)
+      });
+
+      if (!response.ok) {
+        throw new Error(`PaddleOCR HTTP ${response.status}`);
+      }
+
+      const result: PaddleOCRResponse = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || "PaddleOCR failed");
+      }
+
+      const elapsed = Date.now() - startTime;
+      console.log(
+        `[ImageProcessor] PaddleOCR: ${result.total_blocks} blocks, ` +
+          `${result.text.length} chars, confidence=${result.total_confidence.toFixed(2)}, ` +
+          `${elapsed}ms`
+      );
+
+      return {
+        text: result.text,
+        confidence: result.total_confidence,
+        blocks: result.total_blocks,
+        engine: "paddleocr",
+      };
+    } catch (error) {
+      const elapsed = Date.now() - startTime;
+      const errMsg = error instanceof Error ? error.message : String(error);
+
+      if (attempt < MAX_RETRIES) {
+        console.warn(
+          `[ImageProcessor] PaddleOCR attempt ${attempt + 1}/${MAX_RETRIES + 1} failed: ${errMsg}. Retrying in ${RETRY_DELAY_MS}ms...`
+        );
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+        continue;
+      }
+
+      console.warn(
+        `[ImageProcessor] PaddleOCR failed (${elapsed}ms): ${errMsg}`
+      );
+      return { text: "", confidence: 0, blocks: 0, engine: "paddleocr" };
     }
-
-    const result: PaddleOCRResponse = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.error || "PaddleOCR failed");
-    }
-
-    const elapsed = Date.now() - startTime;
-    console.log(
-      `[ImageProcessor] PaddleOCR: ${result.total_blocks} blocks, ` +
-        `${result.text.length} chars, confidence=${result.total_confidence.toFixed(2)}, ` +
-        `${elapsed}ms`
-    );
-
-    return {
-      text: result.text,
-      confidence: result.total_confidence,
-      blocks: result.total_blocks,
-      engine: "paddleocr",
-    };
-  } catch (error) {
-    const elapsed = Date.now() - startTime;
-    console.warn(
-      `[ImageProcessor] PaddleOCR failed (${elapsed}ms):`,
-      error instanceof Error ? error.message : error
-    );
-    return { text: "", confidence: 0, blocks: 0, engine: "paddleocr" };
   }
+
+  // Should never reach here, but safety fallback
+  return { text: "", confidence: 0, blocks: 0, engine: "paddleocr" };
 }
 
 // ============================================================

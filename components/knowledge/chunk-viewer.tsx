@@ -176,7 +176,7 @@ export default function ChunkViewer({ documentId, documentTitle }: ChunkViewerPr
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <Input
-            placeholder="Search chunks by content..."
+            placeholder="Search sections by content..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -193,8 +193,8 @@ export default function ChunkViewer({ documentId, documentTitle }: ChunkViewerPr
       {!loading && (
         <p className="text-sm text-muted-foreground">
           {documentTitle
-            ? `${pagination.total} chunks in "${documentTitle}"`
-            : `Total: ${pagination.total} chunks`}
+            ? `${pagination.total} ${pagination.total === 1 ? "chunk" : "chunks"} in "${documentTitle}"`
+            : `Total: ${pagination.total} ${pagination.total === 1 ? "chunk" : "chunks"}`}
         </p>
       )}
 
@@ -207,12 +207,12 @@ export default function ChunkViewer({ documentId, documentTitle }: ChunkViewerPr
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
           <h3 className="text-lg font-medium">
-            {debouncedSearch ? "No chunks match your search" : "No chunks found"}
+            {debouncedSearch ? "No sections match your search" : "No sections found"}
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
             {debouncedSearch
               ? "Try a different search term"
-              : "Upload documents to generate chunks"}
+              : "Upload documents to generate sections"}
           </p>
         </div>
       ) : (

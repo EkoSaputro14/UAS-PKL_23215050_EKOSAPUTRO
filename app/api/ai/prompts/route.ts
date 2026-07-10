@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma, resolveWorkspaceId } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 /** GET /api/ai/prompts — List all prompt templates */
 export async function GET(request: NextRequest) {
@@ -52,7 +52,6 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = session.user.id! as string;
-    const workspaceId = await resolveWorkspaceId(userId);
     const body = await request.json();
     const { name, content, category = "general" } = body;
 
@@ -68,7 +67,6 @@ export async function POST(request: NextRequest) {
         name,
         content,
         category,
-        workspaceId,
         createdBy: userId,
         version: 1,
         versions: {

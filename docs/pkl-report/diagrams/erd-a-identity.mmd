@@ -1,0 +1,35 @@
+---
+config:
+  theme: base
+  themeVariables:
+    fontSize: 12px
+---
+erDiagram
+    USER {
+        uuid id PK
+        varchar email UK
+        varchar name
+        varchar passwordHash
+        boolean isSuperAdmin
+        boolean suspended
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    WORKSPACE {
+        uuid id PK
+        varchar name
+        varchar slug UK
+        text description
+        timestamp createdAt
+    }
+    WORKSPACE_MEMBER {
+        uuid id PK
+        uuid workspaceId FK
+        uuid userId FK
+        varchar role
+        timestamp createdAt
+    }
+
+    USER ||--o{ WORKSPACE_MEMBER : "belongs to"
+    WORKSPACE ||--o{ WORKSPACE_MEMBER : "has members"
+    USER ||--o{ WORKSPACE : "creates"

@@ -1,8 +1,7 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
-import { setWorkspaceContext, resolveWorkspaceId, prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { recordAnalyticsEvent } from "@/lib/analytics";
-import { requireRole } from "@/lib/rbac";
 import { checkLimit, checkLimitWithAmount } from "@/lib/usage";
 import { trackDocumentUpload, trackChunks, trackEmbeddingRequest } from "@/lib/usage";
 import { writeFile, mkdir, readFile } from "fs/promises";
@@ -13,7 +12,6 @@ import { sanitizeFilename } from "@/lib/url-security";
 import { chunkText } from "@/lib/rag/chunker";
 import { generateEmbeddings } from "@/lib/rag/embedder";
 import { storeChunks } from "@/lib/rag/vectorstore";
-import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
 import {
   enqueueJob,
   startTimer,
@@ -147,20 +145,10 @@ export async function POST(request: NextRequest) {
     // Create document record
     const userId = session.user.id! as string;
 
-    // Set workspace context
-    const workspaceId = await resolveWorkspaceId(userId);
-    await setWorkspaceContext(workspaceId);
-
-    // Require editor role to upload documents
-    await requireRole(workspaceId, userId, "editor");
-
-    // Check document limit
-    await checkLimit(workspaceId, "maxDocuments");
 
     const document = await prisma.document.create({
       data: {
         userId,
-        workspaceId,
         title,
         fileType,
         fileUrl,
@@ -173,19 +161,17 @@ export async function POST(request: NextRequest) {
       enqueueJob({
         id: document.id,
         type: "image",
-        workspaceId,
         enqueueTime: Date.now(),
         attempts: 0,
-        execute: () => processImageDocument(document.id, workspaceId, fileUrl!, file?.size ?? 0),
+        execute: () => processImageDocument(document.id, fileUrl!, file?.size ?? 0, userId),
       });
     } else {
       enqueueJob({
         id: document.id,
         type: "document",
-        workspaceId,
         enqueueTime: Date.now(),
         attempts: 0,
-        execute: () => processDocument(document.id, workspaceId, rawContent, file?.size ?? 0),
+        execute: () => processDocument(document.id, rawContent, file?.size ?? 0, userId),
       });
     }
 
@@ -196,16 +182,6 @@ export async function POST(request: NextRequest) {
       title,
     }, session.user.id!).catch(() => {});
 
-    // Audit: document uploaded
-    logAudit({
-      workspaceId,
-      actorId: session.user.id! as string,
-      actorType: "user",
-      action: AUDIT_ACTIONS.DOCUMENT_UPLOAD,
-      resourceType: "document",
-      resourceId: document.id,
-      metadata: { title, fileType, url: url || null, size: file?.size ?? 0 },
-    });
 
     return Response.json({
       id: document.id,
@@ -229,9 +205,9 @@ export async function POST(request: NextRequest) {
  */
 async function processDocument(
   documentId: string,
-  workspaceId: string,
   rawContent: string,
-  fileSize: number
+  fileSize: number,
+  userId: string
 ) {
   const totalTimer = startTimer();
   const metrics: ProcessingMetrics = {
@@ -243,9 +219,6 @@ async function processDocument(
     chunkCount: 0,
     retryAttempt: 0,
   };
-
-  // Set workspace context for RLS — background task runs in separate context
-  await setWorkspaceContext(workspaceId);
 
   // Skip if empty content (image files have empty content — handled by processImageDocument)
   if (!rawContent.trim()) {
@@ -295,7 +268,7 @@ async function processDocument(
 
   try {
     const storeTimer = startTimer();
-    await storeChunks(documentId, workspaceId, chunkData);
+    await storeChunks(documentId, chunkData);
     metrics.storeDurationMs = storeTimer();
     console.log(
       `[Processing] ${documentId}: stored ${chunkData.length} chunks in ${metrics.storeDurationMs}ms`
@@ -326,16 +299,15 @@ async function processDocument(
 
   // Track usage (fire-and-forget)
   try {
-    await checkLimit(workspaceId, "maxDocuments");
-    await checkLimitWithAmount(workspaceId, "maxStorageMB", Math.ceil(fileSize / (1024 * 1024)));
+    // Usage limit checks removed (workspace removed)
   } catch {
     // Usage limit exceeded — non-blocking, document is already processed
-    console.warn(`[Processing] ${documentId}: usage limit exceeded for workspace ${workspaceId}`);
+    console.warn(`[Processing] ${documentId}: usage limit exceeded`);
   }
 
-  trackDocumentUpload(workspaceId, fileSize).catch(() => {});
-  trackChunks(workspaceId, chunks.length).catch(() => {});
-  trackEmbeddingRequest(workspaceId).catch(() => {});
+  trackDocumentUpload(fileSize).catch(() => {});
+  trackChunks(chunks.length).catch(() => {});
+  trackEmbeddingRequest().catch(() => {});
 }
 
 /**
@@ -351,9 +323,9 @@ async function processDocument(
  */
 async function processImageDocument(
   documentId: string,
-  workspaceId: string,
   fileUrl: string,
-  fileSize: number
+  fileSize: number,
+  userId: string
 ) {
   const totalTimer = startTimer();
   const metrics: ProcessingMetrics = {
@@ -365,9 +337,6 @@ async function processImageDocument(
     chunkCount: 0,
     retryAttempt: 0,
   };
-
-  // Set workspace context for RLS — background task runs in separate context
-  await setWorkspaceContext(workspaceId);
 
   // Convert public/ URL to absolute path for processing
   const imagePath = join(process.cwd(), "public", fileUrl);
@@ -399,7 +368,7 @@ async function processImageDocument(
     processingTimeMs: result.metadata.processing_time_ms,
     imageWidth: result.metadata.image_width,
     imageHeight: result.metadata.image_height,
-  }, workspaceId).catch(() => {});
+  }, userId).catch(() => {});
 
   // If rejected (no content), mark document as failed
   if (result.metadata.extraction_method === "rejected") {
@@ -417,7 +386,7 @@ async function processImageDocument(
       documentId,
       reason: "no_ocr_no_caption",
       fileName: fileUrl,
-    }, workspaceId).catch(() => {});
+    }, userId).catch(() => {});
 
     return;
   }
@@ -471,42 +440,38 @@ async function processImageDocument(
   try {
     const storeTimer = startTimer();
 
-    await prisma.$transaction(async (tx) => {
-      // Set RLS context for this transaction
-      await tx.$executeRaw`SELECT set_config('app.current_workspace_id', ${workspaceId}, false)`;
+    // Store chunks directly (no workspace RLS needed)
+    for (let i = 0; i < imageChunks.length; i++) {
+      const chunk = imageChunks[i];
+      const embedding = embeddings[i];
 
-      for (let i = 0; i < imageChunks.length; i++) {
-        const chunk = imageChunks[i];
-        const embedding = embeddings[i];
+      const chunkMetadata = {
+        source: "image",
+        chunk_type: chunk.chunk_type,
+        extraction_method: chunk.metadata.extraction_method,
+        vision_model: chunk.metadata.vision_model,
+        ocr_engine: chunk.metadata.ocr_engine,
+        image_width: chunk.metadata.image_width,
+        image_height: chunk.metadata.image_height,
+        text_length: chunk.metadata.text_length,
+        caption_length: chunk.metadata.caption_length,
+        processing_time_ms: chunk.metadata.processing_time_ms,
+      };
 
-        const chunkMetadata = {
-          source: "image",
-          chunk_type: chunk.chunk_type,
-          extraction_method: chunk.metadata.extraction_method,
-          vision_model: chunk.metadata.vision_model,
-          ocr_engine: chunk.metadata.ocr_engine,
-          image_width: chunk.metadata.image_width,
-          image_height: chunk.metadata.image_height,
-          text_length: chunk.metadata.text_length,
-          caption_length: chunk.metadata.caption_length,
-          processing_time_ms: chunk.metadata.processing_time_ms,
-        };
-
-        await tx.$executeRaw`
-          INSERT INTO document_chunks (
-            id, document_id, workspace_id, tenant_id, content, embedding,
-            chunk_index, metadata, chunk_type, ocr_text, caption, image_summary, image_url, created_at
-          ) VALUES (
-            gen_random_uuid(), ${documentId}, ${workspaceId}, ${workspaceId},
-            ${chunk.content},
-            ${`[${embedding.join(",")}]`}::vector,
-            ${i}, ${JSON.stringify(chunkMetadata)}::jsonb,
-            ${chunk.chunk_type}, ${chunk.ocr_text}, ${chunk.caption}, ${chunk.image_summary}, ${chunk.image_url},
-            NOW()
-          )
-        `;
-      }
-    });
+      await prisma.$executeRaw`
+        INSERT INTO document_chunks (
+          id, document_id, content, embedding,
+          chunk_index, metadata, chunk_type, ocr_text, caption, image_summary, image_url, created_at
+        ) VALUES (
+          gen_random_uuid(), ${documentId},
+          ${chunk.content},
+          ${`[${embedding.join(",")}]`}::vector,
+          ${i}, ${JSON.stringify(chunkMetadata)}::jsonb,
+          ${chunk.chunk_type}, ${chunk.ocr_text}, ${chunk.caption}, ${chunk.image_summary}, ${chunk.image_url},
+          NOW()
+        )
+      `;
+    }
     metrics.storeDurationMs = storeTimer();
     console.log(
       `[Processing] ${documentId}: stored ${imageChunks.length} image chunks in ${metrics.storeDurationMs}ms`
@@ -535,9 +500,9 @@ async function processImageDocument(
   );
 
   // Track usage
-  trackDocumentUpload(workspaceId, fileSize).catch(() => {});
-  trackChunks(workspaceId, imageChunks.length).catch(() => {});
-  trackEmbeddingRequest(workspaceId).catch(() => {});
+  trackDocumentUpload(fileSize).catch(() => {});
+  trackChunks(imageChunks.length).catch(() => {});
+  trackEmbeddingRequest().catch(() => {});
 
   // Track successful image processing
   recordAnalyticsEvent("image_processing_success", {
@@ -545,7 +510,7 @@ async function processImageDocument(
     chunkCount: imageChunks.length,
     chunkTypes: imageChunks.map((c) => c.chunk_type),
     extractionMethod: result.metadata.extraction_method,
-  }, workspaceId).catch(() => {});
+  }, userId).catch(() => {});
 }
 
 /**

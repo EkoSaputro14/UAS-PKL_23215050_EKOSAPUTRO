@@ -1,8 +1,6 @@
 import { NextRequest } from "next/server";
 import { requireDashboardAuth, apiErrorResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
-import { updateWhatsAppLeadStatus, updateWhatsAppLeadScore } from "@/lib/whatsapp/leads";
-import { LeadScore, LeadStatus } from "@/lib/lead-intent";
 
 /**
  * GET /api/whatsapp/conversations/[id]
@@ -17,7 +15,7 @@ export async function GET(
     const { id } = await params;
 
     const conversation = await prisma.whatsAppConversation.findFirst({
-      where: { id, workspaceId: auth.workspaceId },
+      where: { id },
       include: {
         messages: {
           orderBy: { createdAt: "asc" },
@@ -62,7 +60,7 @@ export async function PATCH(
 
     // Verify conversation belongs to workspace
     const conversation = await prisma.whatsAppConversation.findFirst({
-      where: { id, workspaceId: auth.workspaceId },
+      where: { id },
     });
 
     if (!conversation) {
@@ -70,11 +68,17 @@ export async function PATCH(
     }
 
     if (status) {
-      await updateWhatsAppLeadStatus(id, status as LeadStatus);
+      await prisma.whatsAppConversation.update({
+        where: { id },
+        data: { leadStatus: status },
+      });
     }
 
     if (score) {
-      await updateWhatsAppLeadScore(id, score as LeadScore);
+      await prisma.whatsAppConversation.update({
+        where: { id },
+        data: { leadScore: score },
+      });
     }
 
     return Response.json({ success: true });

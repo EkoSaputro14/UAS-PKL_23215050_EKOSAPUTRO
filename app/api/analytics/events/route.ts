@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { requireFeature } from "@/lib/entitlements";
-import { resolveWorkspaceId } from "@/lib/prisma";
 import { recordAnalyticsEvent, type AnalyticsEventType } from "@/lib/analytics";
 
 export async function POST(request: NextRequest) {
@@ -10,8 +8,6 @@ export async function POST(request: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const workspaceId = await resolveWorkspaceId(session.user.id! as string);
-    await requireFeature(workspaceId, "analytics");
     const { eventType, metadata, userId } = await request.json();
 
     if (!eventType || typeof eventType !== "string") {

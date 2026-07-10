@@ -1,0 +1,62 @@
+---
+config:
+  theme: base
+  themeVariables:
+    fontSize: 12px
+---
+erDiagram
+    SUBSCRIPTION_PLAN {
+        uuid id PK
+        varchar name UK
+        int maxDocuments
+        int maxChatMessages
+        int maxStorageMb
+        timestamp createdAt
+    }
+    WORKSPACE_SUBSCRIPTION {
+        uuid id PK
+        uuid workspaceId FK
+        uuid planId FK
+        varchar status
+        varchar stripeSubscriptionId
+        timestamp createdAt
+    }
+    SETTING {
+        uuid id PK
+        varchar key UK
+        text value
+        timestamp updatedAt
+    }
+    WORKSPACE_SETTING {
+        uuid id PK
+        uuid workspaceId FK
+        varchar key
+        text value
+        timestamp updatedAt
+    }
+    PROMPT_TEMPLATE {
+        uuid id PK
+        varchar name
+        text content
+        varchar category
+        boolean isActive
+        int version
+        uuid createdBy FK
+        timestamp createdAt
+    }
+    PROMPT_VERSION {
+        uuid id PK
+        uuid promptId FK
+        int version
+        text content
+        varchar changeNote
+        uuid createdBy FK
+        timestamp createdAt
+    }
+
+    WORKSPACE ||--o| WORKSPACE_SUBSCRIPTION : "subscribes"
+    SUBSCRIPTION_PLAN ||--o{ WORKSPACE_SUBSCRIPTION : "defines"
+    WORKSPACE ||--o{ WORKSPACE_SETTING : "configures"
+    USER ||--o{ PROMPT_TEMPLATE : "creates"
+    PROMPT_TEMPLATE ||--o{ PROMPT_VERSION : "versions"
+    USER ||--o{ PROMPT_VERSION : "creates"

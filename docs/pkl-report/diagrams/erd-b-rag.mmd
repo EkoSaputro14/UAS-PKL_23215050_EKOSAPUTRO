@@ -1,0 +1,43 @@
+---
+config:
+  theme: base
+  themeVariables:
+    fontSize: 12px
+---
+erDiagram
+    DOCUMENT {
+        uuid id PK
+        uuid userId FK
+        uuid workspaceId FK
+        varchar title
+        varchar fileType
+        varchar fileUrl
+        varchar status
+        int chunkCount
+        timestamp createdAt
+    }
+    DOCUMENT_CHUNK {
+        uuid id PK
+        uuid documentId FK
+        uuid workspaceId FK
+        text content
+        vector1536 embedding
+        int chunkIndex
+        varchar chunkType
+        jsonb metadata
+        timestamp createdAt
+    }
+    FOLDER {
+        uuid id PK
+        varchar name
+        uuid userId FK
+        uuid workspaceId FK
+        timestamp createdAt
+    }
+
+    WORKSPACE ||--o{ DOCUMENT : "contains"
+    WORKSPACE ||--o{ FOLDER : "contains"
+    USER ||--o{ DOCUMENT : "uploads"
+    USER ||--o{ FOLDER : "organizes"
+    DOCUMENT ||--o{ DOCUMENT_CHUNK : "splits into"
+    FOLDER ||--o{ DOCUMENT : "groups"

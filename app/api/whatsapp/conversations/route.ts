@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
 
     const where: Record<string, unknown> = {
-      workspaceId: auth.workspaceId,
       ...(status ? { leadStatus: status } : {}),
       ...(score ? { leadScore: score } : {}),
       ...(search

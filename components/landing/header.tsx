@@ -109,12 +109,20 @@ export default function LandingHeader() {
               Dashboard
             </Link>
           ) : (
-            <Link
-              href="/register"
-              className="lg:hidden inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
-            >
-              Get started
-            </Link>
+            <div className="lg:hidden flex items-center gap-2">
+              <Link
+                href="/login"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Log In
+              </Link>
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+              >
+                Get started
+              </Link>
+            </div>
           )}
         </div>
       </header>

@@ -154,7 +154,7 @@ export default function SimilaritySearch({ initialQuery }: SimilaritySearchProps
           <div className="relative">
             <textarea
               ref={inputRef}
-              placeholder="Enter a question or text to find similar chunks..."
+              placeholder="Enter a question or text to find similar sections..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -250,7 +250,7 @@ export default function SimilaritySearch({ initialQuery }: SimilaritySearchProps
           </svg>
           <h3 className="text-lg font-medium">Test your knowledge base retrieval</h3>
           <p className="mt-1 max-w-md text-sm text-muted-foreground">
-            Enter any question or text to see which chunks the AI would retrieve.
+            Enter any question or text to see which sections the AI would retrieve.
             This helps you understand why the AI answered a certain way and whether your knowledge base covers a topic.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-2">

@@ -3,6 +3,15 @@
 > File ini dioptimalkan untuk AI coding agents. Baca file ini SEBELUM melakukan perubahan kode apapun pada proyek Mimotes.
 > Konteks utama: `.ai/project-memory.md` | Technical debt: `.ai/TECH_DEBT.md` | Sprint: `.ai/current-sprint.md`
 
+### Aturan Interaksi
+1. Sebelum menulis kode, Anda WAJIB menjabarkan rencana perubahan dalam 3-5 poin singkat.
+2. Jika instruksi tugas dari user memiliki ambiguitas pada alur RAG atau NextAuth, Anda WAJIB bertanya sebelum melakukan modifikasi file.
+
+### Batasan Teknologi & Penulisan Kode
+- **Next.js 16 (App Router):** Selalu gunakan Server Components secara default[cite: 1]. Gunakan directive `"use client"` hanya pada komponen UI interaktif yang terdaftar di tabel komponen (misal: `ChatWindow`, `UploadForm`)[cite: 1].
+- **Tailwind v4 & Shadcn:** Jangan gunakan file konfigurasi `tailwind.config.js` lama. Semua variabel berbasis CSS (`oklch`) di `app/globals.css`[cite: 1].
+- **Surgical Edit:** Saat memperbaiki masalah performa streaming atau penanganan error RAG, dilarang merombak skema database `prisma/schema.prisma` kecuali diminta secara eksplisit[cite: 1].
+
 ## Ringkasan Proyek
 
 **Mimotes** adalah chatbot AI berbasis pengetahuan (RAG — Retrieval-Augmented Generation). User mengupload dokumen, sistem memproses menjadi chunks + embeddings, lalu chatbot menjawab pertanyaan berdasarkan isi dokumen tersebut.

@@ -1,0 +1,23 @@
+flowchart LR
+    A["Pengguna mengirim\npesan chat"] --> B["POST /api/chat"]
+    B --> C["Generate Query\nEmbedding"]
+    C --> D{"Mode Retrieval?"}
+    D -->|Hybrid| E["Vector Search +\nBM25 (RRF)"]
+    D -->|Vector Only| F["Cosine Similarity\npgvector"]
+    E --> G{"Confidence\nClassification"}
+    F --> G
+    G -->|High >= 0.55| H["Build Context\n(max 3000 tokens)"]
+    G -->|Medium >= 0.40| H
+    G -->|Low >= 0.30| H2["Tambahkan prefix\n'Informasi terbatas...'"]
+    G -->|Refuse < 0.30| I["Penolakan sopan\n'Maaf, saya tidak...'"]
+    H2 --> H
+    H --> J["Konstruksi System Prompt\n(berdasarkan mode widget)"]
+    J --> K["LLM Generate\nStreaming Response"]
+    K --> L["Simpan response\n+ sources ke DB"]
+    L --> M["Return response\n+ X-Sources header"]
+    I --> M2["Return refusal\nmessage"]
+
+    style A fill:#cd8c68,color:#fff
+    style M fill:#5baaad,color:#fff
+    style I fill:#e74c3c,color:#fff
+    style M2 fill:#e74c3c,color:#fff

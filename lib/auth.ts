@@ -3,8 +3,17 @@ import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
 import { resolveWorkspaceId } from "@/lib/prisma";
+
+// Audit logging removed — lib/audit.ts deleted
+function logAudit(_entry: Record<string, unknown>): void {
+  // No-op stub — audit module removed
+}
+const AUDIT_ACTIONS = {
+  LOGIN: "login",
+  LOGIN_FAILED: "login_failed",
+  LOGOUT: "logout",
+} as const;
 
 /**
  * Helper: extract workspaceId from user ID.

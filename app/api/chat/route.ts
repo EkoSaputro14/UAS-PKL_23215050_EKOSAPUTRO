@@ -1,16 +1,13 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
-import { setWorkspaceContext, getWorkspaceContext, resolveWorkspaceId } from "@/lib/prisma";
 import { streamRAGResponse } from "@/lib/rag/chain";
 import { type PromptContext } from "@/lib/rag/chain";
-import { buildSystemPrompt } from "@/lib/prompts/templates";
-import type { WidgetMode } from "@/lib/prompts/templates";
 import { ratelimit } from "@/lib/ratelimit";
 import { getClientIP } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { createTextStreamResponse } from "ai";
 import { recordAnalyticsEvent } from "@/lib/analytics";
-import { trackChatMessage, trackAIRequest, checkLimit } from "@/lib/usage";
+import { trackChatMessage, trackAIRequest } from "@/lib/usage";
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,10 +50,7 @@ export async function POST(request: NextRequest) {
     }
     const userId = userSession.user.id as string;
 
-    // Set RLS workspace context — all subsequent queries are workspace-scoped
-    const workspaceId = await resolveWorkspaceId(userId);
-    await setWorkspaceContext(workspaceId);
-    console.log(`[Chat] workspaceId=${workspaceId}, context=${await getWorkspaceContext()}`);
+    console.log(`[Chat] userId=${userId}`);
 
     // Create or get session — verify ownership
     let session;
@@ -72,7 +66,6 @@ export async function POST(request: NextRequest) {
         data: {
           title: message.substring(0, 50) + (message.length > 50 ? "..." : ""),
           userId,
-          workspaceId,
         },
       });
       isNewSession = true;
@@ -85,16 +78,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Save user message — use transaction to ensure RLS context is on the same connection
-    await prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT set_config('app.current_workspace_id', ${workspaceId}, false)`;
-      await tx.chatMessage.create({
-        data: {
-          sessionId: session.id,
-          role: "user",
-          content: message,
-        },
-      });
+    await prisma.chatMessage.create({
+      data: {
+        sessionId: session.id,
+        role: "user",
+        content: message,
+      },
     });
 
     // Record chat message event
@@ -104,15 +93,12 @@ export async function POST(request: NextRequest) {
     }, userId).catch(() => {});
 
     // Fetch conversation history (last 10 messages) — must be inside transaction for RLS
-    const historyMessages = await prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT set_config('app.current_workspace_id', ${workspaceId}, false)`;
-      return tx.$queryRaw<Array<{ role: string; content: string }>>`
-        SELECT role, content FROM chat_messages
-        WHERE session_id = ${session.id}
-        ORDER BY created_at ASC
-        LIMIT 20
-      `;
-    });
+    const historyMessages = await prisma.$queryRaw<Array<{ role: string; content: string }>>`
+      SELECT role, content FROM chat_messages
+      WHERE session_id = ${session.id}
+      ORDER BY created_at ASC
+      LIMIT 20
+    `;
 
     // Debug: log history count
     console.log(`[Chat] History loaded: ${historyMessages.length} messages for session ${session.id}`);
@@ -138,14 +124,14 @@ export async function POST(request: NextRequest) {
 
     // Generate RAG response — scoped to workspace's documents only
     const promptContext: PromptContext = {
-      mode: (mode || "knowledge_base") as WidgetMode,
+      mode: (mode || "knowledge_base") as string,
       businessName: "",
       businessDescription: "",
       contactInfo: {},
       knowledgeContext: "",
       conversationHistory,
     };
-    const result = await streamRAGResponse(message, 5, workspaceId, undefined, undefined, promptContext);
+    const result = await streamRAGResponse(message, 5, undefined, undefined, promptContext);
 
     if (result.noContext) {
       // No context found, return a simple response
@@ -158,17 +144,13 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Save assistant message — use transaction for RLS
-      await prisma.$transaction(async (tx) => {
-        await tx.$executeRaw`SELECT set_config('app.current_workspace_id', ${workspaceId}, false)`;
-        await tx.chatMessage.create({
-          data: {
-            sessionId: session.id,
-            role: "assistant",
-            content: noContextMsg,
-            sources: [],
-          },
-        });
+      await prisma.chatMessage.create({
+        data: {
+          sessionId: session.id,
+          role: "assistant",
+          content: noContextMsg,
+          sources: [],
+        },
       });
 
       return createTextStreamResponse({
@@ -190,17 +172,13 @@ export async function POST(request: NextRequest) {
         controller.enqueue(chunk);
       },
       async flush() {
-        // Save assistant message with sources after streaming is complete — use transaction for RLS
-        await prisma.$transaction(async (tx) => {
-          await tx.$executeRaw`SELECT set_config('app.current_workspace_id', ${workspaceId}, false)`;
-          await tx.chatMessage.create({
-            data: {
-              sessionId: session.id,
-              role: "assistant",
-              content: fullResponse,
-              sources: JSON.parse(JSON.stringify(result.sources)),
-            },
-          });
+        await prisma.chatMessage.create({
+          data: {
+            sessionId: session.id,
+            role: "assistant",
+            content: fullResponse,
+            sources: JSON.parse(JSON.stringify(result.sources)),
+          },
         });
       },
     });
@@ -222,20 +200,9 @@ export async function POST(request: NextRequest) {
 
     const processedStream = readableStream.pipeThrough(transformStream);
 
-    // Track usage (fire-and-forget) — with limit enforcement
-    try {
-      await checkLimit(workspaceId, "maxChatMessages");
-      await checkLimit(workspaceId, "maxAIRequests");
-    } catch (error) {
-      if (error instanceof Error && error.name === "LimitExceededError") {
-        return Response.json(
-          { error: error.message, limitExceeded: true },
-          { status: 429 }
-        );
-      }
-    }
-    trackChatMessage(workspaceId).catch(() => {});
-    trackAIRequest(workspaceId).catch(() => {});
+    // Usage tracking (fire-and-forget)
+    trackChatMessage().catch(() => {});
+    trackAIRequest().catch(() => {});
 
     return createTextStreamResponse({
       textStream: processedStream,

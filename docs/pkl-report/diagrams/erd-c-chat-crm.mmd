@@ -1,0 +1,93 @@
+---
+config:
+  theme: base
+  themeVariables:
+    fontSize: 12px
+---
+erDiagram
+    CHAT_SESSION {
+        uuid id PK
+        uuid userId FK
+        uuid workspaceId FK
+        varchar title
+        timestamp createdAt
+    }
+    CHAT_MESSAGE {
+        uuid id PK
+        uuid sessionId FK
+        varchar role
+        text content
+        jsonb sources
+        timestamp createdAt
+    }
+    WIDGET {
+        uuid id PK
+        uuid workspaceId FK
+        varchar name
+        varchar slug UK
+        boolean isActive
+        boolean leadCaptureEnabled
+        timestamp createdAt
+    }
+    WIDGET_CONVERSATION {
+        uuid id PK
+        uuid widgetId FK
+        uuid workspaceId FK
+        varchar visitorId
+        varchar leadName
+        varchar leadEmail
+        varchar leadScore
+        varchar leadStatus
+        varchar leadIntent
+        timestamp createdAt
+    }
+    WIDGET_MESSAGE {
+        uuid id PK
+        uuid conversationId FK
+        varchar role
+        text content
+        timestamp createdAt
+    }
+    WHATSAPP_CONFIG {
+        uuid id PK
+        uuid workspaceId FK
+        varchar phoneNumberId
+        boolean isEnabled
+        timestamp createdAt
+    }
+    WHATSAPP_CONVERSATION {
+        uuid id PK
+        uuid configId FK
+        uuid workspaceId FK
+        varchar waId
+        varchar contactName
+        varchar leadScore
+        varchar leadStatus
+        timestamp createdAt
+    }
+    WHATSAPP_MESSAGE {
+        uuid id PK
+        uuid conversationId FK
+        varchar role
+        text content
+        varchar messageType
+        timestamp createdAt
+    }
+    ANALYTICS_EVENT {
+        uuid id PK
+        uuid userId FK
+        varchar eventType
+        jsonb metadata
+        timestamp createdAt
+    }
+
+    WORKSPACE ||--o{ CHAT_SESSION : "has"
+    USER ||--o{ CHAT_SESSION : "creates"
+    CHAT_SESSION ||--o{ CHAT_MESSAGE : "contains"
+    WORKSPACE ||--o{ WIDGET : "has"
+    WIDGET ||--o{ WIDGET_CONVERSATION : "receives"
+    WIDGET_CONVERSATION ||--o{ WIDGET_MESSAGE : "contains"
+    WORKSPACE ||--o{ WHATSAPP_CONFIG : "has"
+    WHATSAPP_CONFIG ||--o{ WHATSAPP_CONVERSATION : "handles"
+    WHATSAPP_CONVERSATION ||--o{ WHATSAPP_MESSAGE : "contains"
+    USER ||--o{ ANALYTICS_EVENT : "generates"

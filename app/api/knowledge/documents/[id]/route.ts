@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma, resolveWorkspaceId, setWorkspaceContext } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/knowledge/documents/[id]
@@ -18,13 +18,11 @@ export async function GET(
     }
 
     const { id } = await params;
-    const workspaceId = await resolveWorkspaceId(session.user.id! as string);
-    await setWorkspaceContext(workspaceId);
 
     const document = await prisma.document.findFirst({
       where: {
         id,
-        workspaceId,
+        userId: session.user.id!,
       },
       include: {
         _count: { select: { chunks: true } },

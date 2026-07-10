@@ -77,12 +77,11 @@ export async function POST(request: NextRequest) {
       result = await hybridSearch({
         queryText: query,
         queryEmbedding,
-        workspaceId,
         topK: k,
         minSimilarity: t,
       });
-    } else {
-      result = await searchSimilarChunks(queryEmbedding, k, workspaceId, t);
+      } else {
+      result = await searchSimilarChunks(queryEmbedding, k, t);
     }
 
     const searchTime = Math.round(performance.now() - searchStart);

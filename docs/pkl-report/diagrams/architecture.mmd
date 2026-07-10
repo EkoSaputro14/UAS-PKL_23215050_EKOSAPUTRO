@@ -1,0 +1,64 @@
+graph LR
+    subgraph Frontend["Frontend Layer"]
+        direction LR
+        FE1["Next.js 16 / React 19"]
+        FE2["Tailwind CSS"]
+        FE3["53 Halaman"]
+    end
+
+    subgraph API["API Layer"]
+        direction LR
+        A1["Auth API"]
+        A2["Chat API"]
+        A3["RAG API"]
+        A4["CRM API"]
+        A5["WhatsApp API"]
+        A6["Billing API"]
+    end
+
+    subgraph RAG["RAG Pipeline"]
+        direction LR
+        R1["Parser"] --> R2["Chunker"] --> R3["Embedder"] --> R4["Vector Store"] --> R5["Retrieval"] --> R6["LLM Chain"]
+    end
+
+    subgraph Data["Data Layer"]
+        direction LR
+        DB["PostgreSQL 16 + pgvector"]
+        PRISMA["Prisma ORM"]
+    end
+
+    subgraph Services["Microservices"]
+        direction LR
+        BAILEYS["Baileys WhatsApp"]
+        OCR["PaddleOCR Python"]
+        N8N["n8n Workflow"]
+    end
+
+    subgraph External["External Services"]
+        direction LR
+        LLM["LLM Provider"]
+        STRIPE["Stripe Billing"]
+        REDIS["Upstash Redis"]
+    end
+
+    Frontend --> API
+    API --> RAG
+    API --> Data
+    API --> Services
+    RAG --> Data
+    RAG --> External
+    Services --> External
+
+    classDef frontend fill:#E8F4FD,stroke:#3498db,stroke-width:2px
+    classDef api fill:#F0EBE4,stroke:#cd8c68,stroke-width:2px
+    classDef rag fill:#E8F8F5,stroke:#5baaad,stroke-width:2px
+    classDef data fill:#FEF5E7,stroke:#f39c12,stroke-width:2px
+    classDef services fill:#F5EEF8,stroke:#9b59b6,stroke-width:2px
+    classDef external fill:#FDEDEC,stroke:#e74c3c,stroke-width:2px
+
+    class FE1,FE2,FE3 frontend
+    class A1,A2,A3,A4,A5,A6 api
+    class R1,R2,R3,R4,R5,R6 rag
+    class DB,PRISMA data
+    class BAILEYS,OCR,N8N services
+    class LLM,STRIPE,REDIS external

@@ -18,7 +18,6 @@ import {
   Target,
   Shield,
 } from "lucide-react";
-import WorkspaceSwitcher from "@/components/workspace/workspace-switcher";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -106,13 +105,6 @@ export default function AppSidebar({ user, onNavigate }: AppSidebarProps) {
           Mimotes
         </span>
       </div>
-
-      {/* Workspace Switcher */}
-      <div className="px-3 py-2">
-        <WorkspaceSwitcher />
-      </div>
-
-      <Separator />
 
       {/* + New Chat CTA */}
       <div className="px-3 py-2">

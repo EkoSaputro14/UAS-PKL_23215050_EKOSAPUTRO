@@ -7,10 +7,13 @@ import { prisma, setWorkspaceContext } from "@/lib/prisma";
 import { generateRAGResponse } from "@/lib/rag/chain";
 import { recordAnalyticsEvent } from "@/lib/analytics";
 import { trackChatMessage } from "@/lib/usage";
-import { logAudit } from "@/lib/audit";
-import { detectIntent, calculateLeadScore } from "@/lib/lead-intent";
 import { sendTextMessage, markAsRead, downloadMedia } from "./client";
 import { WebhookPayload } from "./webhook";
+
+// audit and lead-intent modules removed — stub implementations
+function logAudit(_entry: Record<string, unknown>): void { /* no-op */ }
+function detectIntent(_text: string): string | null { return null; }
+function calculateLeadScore(_hasLead: boolean, _intent: string | null, _messageCount: number): number { return 0; }
 
 /**
  * Process an incoming WhatsApp message.
@@ -34,18 +37,18 @@ export async function processIncomingMessage(payload: WebhookPayload): Promise<v
     return;
   }
 
-  const workspaceId = config.workspaceId;
+  // workspaceId removed from config — use config.id as workspace identifier
+  const workspaceId = config.id;
   await setWorkspaceContext(workspaceId);
 
   // 2. Find or create conversation
   let conversation = await prisma.whatsAppConversation.findFirst({
-    where: { workspaceId, waId: from },
+    where: { waId: from },
   });
 
   if (!conversation) {
     conversation = await prisma.whatsAppConversation.create({
       data: {
-        workspaceId,
         configId: config.id,
         waId: from,
         contactName: contactName || null,
@@ -81,7 +84,6 @@ export async function processIncomingMessage(payload: WebhookPayload): Promise<v
   await prisma.whatsAppMessage.create({
     data: {
       conversationId: conversation.id,
-      workspaceId,
       role: "user",
       content: messageContent,
       messageType,
@@ -117,7 +119,7 @@ export async function processIncomingMessage(payload: WebhookPayload): Promise<v
 
   // 8. Run RAG pipeline
   try {
-    const ragResponse = await generateRAGResponse(messageContent, 3, workspaceId, 0.30);
+    const ragResponse = await generateRAGResponse(messageContent, 3, 0.30);
 
     const aiResponse = ragResponse.answer || "Maaf, saya tidak dapat menemukan jawaban untuk pertanyaan Anda.";
     const sources = ragResponse.sources || [];
@@ -126,7 +128,6 @@ export async function processIncomingMessage(payload: WebhookPayload): Promise<v
     await prisma.whatsAppMessage.create({
       data: {
         conversationId: conversation.id,
-        workspaceId,
         role: "assistant",
         content: aiResponse,
         messageType: "text",
@@ -157,7 +158,7 @@ export async function processIncomingMessage(payload: WebhookPayload): Promise<v
     await prisma.whatsAppConversation.update({
       where: { id: conversation.id },
       data: {
-        leadScore: score,
+        leadScore: String(score),
         leadIntent: intent || undefined,
         messageCount: { increment: 1 },
         lastMessageAt: new Date(),
@@ -174,7 +175,7 @@ export async function processIncomingMessage(payload: WebhookPayload): Promise<v
       channel: "whatsapp",
     }).catch((err) => console.error("[Analytics] Failed:", err));
 
-    await trackChatMessage(workspaceId).catch((err) =>
+    await trackChatMessage().catch((err) =>
       console.error("[Usage] Failed:", err)
     );
 
@@ -187,7 +188,7 @@ export async function processIncomingMessage(payload: WebhookPayload): Promise<v
       resourceType: "whatsapp_conversation",
       resourceId: conversation.id,
       metadata: { from, messageType, leadScore: score },
-    }).catch((err) => console.error("[Audit] Failed:", err));
+    });
 
   } catch (error) {
     console.error("[WhatsApp] RAG pipeline failed:", error);

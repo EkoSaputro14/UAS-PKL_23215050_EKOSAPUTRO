@@ -1,0 +1,40 @@
+graph LR
+    subgraph Ingestion["Document Ingestion"]
+        direction TB
+        U["Upload<br/>Dokumen"] --> P["Parser<br/>(PDF/DOCX/TXT/Gambar)"]
+        P --> C["Chunker<br/>(500 chars, 50 word overlap)"]
+    end
+
+    subgraph Embedding["Embedding Generation"]
+        direction TB
+        C --> E{"Provider<br/>Available?"}
+        E -->|Yes| O["OpenAI<br/>text-embedding-3-small<br/>(1536 dim)"]
+        E -->|No| F["Feature Hashing<br/>(Local Fallback)"]
+    end
+
+    subgraph Storage["Vector Storage"]
+        O --> V["pgvector<br/>document_chunks<br/>vector(1536)"]
+        F --> V
+    end
+
+    subgraph Retrieval["Retrieval"]
+        direction TB
+        Q["User Query"] --> QE["Query Embedding"]
+        QE --> HS["Hybrid Search<br/>(Vector 0.6 + BM25 0.4)"]
+        HS --> RRF["Reciprocal Rank<br/>Fusion (RRF)"]
+        RRF --> CC["Confidence<br/>Classification"]
+    end
+
+    V --> HS
+
+    subgraph Generation["Response Generation"]
+        CC --> CTX["Build Context<br/>(max 3000 tokens)"]
+        CTX --> SP["System Prompt<br/>(mode-specific)"]
+        SP --> LLM["LLM<br/>(temperature: 0.3)"]
+        LLM --> RESP["Streaming<br/>Response"]
+    end
+
+    style U fill:#cd8c68,color:#fff
+    style V fill:#5baaad,color:#fff
+    style LLM fill:#1e3a5f,color:#fff
+    style RESP fill:#cd8c68,color:#fff

@@ -99,49 +99,18 @@ export function isTrialExpired(trialEndsAt: Date | null): boolean {
  * - Trial has expired
  */
 export async function getPlanLimits(workspaceId: string): Promise<PlanLimits> {
-  // Use transaction to ensure RLS context and query share the same connection
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT set_config('app.current_workspace_id', ${workspaceId}, false)`;
-
-    const sub = await tx.workspaceSubscription.findUnique({
-      where: { workspaceId },
-      include: { plan: true },
-    });
-
-    if (sub?.plan && isSubscriptionActive(sub.status)) {
-      // Check trial expiration
-      if (sub.status === "trial" && isTrialExpired(sub.trialEndsAt)) {
-        return DEFAULT_LIMITS.free;
-      }
-      return {
-        maxDocuments: sub.plan.maxDocuments,
-        maxStorageMB: sub.plan.maxStorageMB,
-        maxChatMessages: sub.plan.maxChatMessages,
-        maxChunks: sub.plan.maxChunks,
-        maxAIRequests: sub.plan.maxAIRequests,
-        maxEmbeddingReqs: sub.plan.maxEmbeddingReqs,
-        maxMCPExecutions: sub.plan.maxMCPExecutions,
-        maxMembers: sub.plan.maxMembers,
-        maxWorkspaces: sub.plan.maxWorkspaces,
-      };
-    }
-
-    return DEFAULT_LIMITS.free;
-  });
+  // WorkspaceSubscription model removed — return free tier defaults
+  void workspaceId; // suppress unused warning
+  return DEFAULT_LIMITS.free;
 }
 
 /**
  * Get workspace subscription info.
  */
 export async function getWorkspaceSubscription(workspaceId: string) {
-  // Use transaction to ensure RLS context and query share the same connection
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT set_config('app.current_workspace_id', ${workspaceId}, false)`;
-    return tx.workspaceSubscription.findUnique({
-      where: { workspaceId },
-      include: { plan: true },
-    });
-  });
+  // WorkspaceSubscription model removed — return null
+  void workspaceId;
+  return null;
 }
 
 // ============================================================
@@ -152,89 +121,68 @@ export async function getWorkspaceSubscription(workspaceId: string) {
  * Get or create usage record for the current period.
  */
 async function getOrCreateUsage(workspaceId: string, period: string) {
-  const existing = await prisma.workspaceUsage.findUnique({
-    where: { workspaceId_period: { workspaceId, period } },
-  });
+  // WorkspaceUsage model removed — use raw query
+  const existing = await prisma.$queryRaw<Array<{
+    id: string; workspace_id: string; period: string;
+    documents_created: bigint; storage_bytes_used: bigint; chunks_created: bigint;
+    chat_messages: bigint; ai_requests: bigint; embedding_requests: bigint;
+    mcp_executions: bigint;
+  }>>`
+    SELECT * FROM workspace_usage
+    WHERE workspace_id = ${workspaceId} AND period = ${period}
+    LIMIT 1
+  `;
 
-  if (existing) return existing;
+  if (existing.length > 0) {
+    const row = existing[0];
+    return {
+      id: row.id,
+      workspaceId: row.workspace_id,
+      period: row.period,
+      documentsCreated: Number(row.documents_created),
+      storageBytesUsed: row.storage_bytes_used,
+      chunksCreated: Number(row.chunks_created),
+      chatMessages: Number(row.chat_messages),
+      aiRequests: Number(row.ai_requests),
+      embeddingRequests: Number(row.embedding_requests),
+      mcpExecutions: Number(row.mcp_executions),
+    };
+  }
 
-  return prisma.workspaceUsage.create({
-    data: { workspaceId, period },
-  });
+  // Create new usage record via raw query
+  await prisma.$executeRaw`
+    INSERT INTO workspace_usage (id, workspace_id, period, created_at, updated_at)
+    VALUES (gen_random_uuid()::text, ${workspaceId}, ${period}, NOW(), NOW())
+  `;
+
+  return getOrCreateUsage(workspaceId, period);
 }
 
 /**
  * Increment usage using a safe approach (avoid raw interpolation).
  */
-export async function trackDocumentUpload(
-  workspaceId: string,
-  storageBytes: number
-): Promise<void> {
-  const period = getCurrentPeriod();
-  await prisma.$executeRaw`
-    INSERT INTO workspace_usage (id, workspace_id, period, documents_created, storage_bytes_used, created_at, updated_at)
-    VALUES (gen_random_uuid()::text, ${workspaceId}, ${period}, 1, ${storageBytes}, NOW(), NOW())
-    ON CONFLICT (workspace_id, period)
-    DO UPDATE SET
-      documents_created = workspace_usage.documents_created + 1,
-      storage_bytes_used = workspace_usage.storage_bytes_used + ${storageBytes},
-      updated_at = NOW()
-  `;
+export async function trackDocumentUpload(_storageBytes: number): Promise<void> {
+  // Workspace removed — no-op
 }
 
-export async function trackChatMessage(workspaceId: string): Promise<void> {
-  const period = getCurrentPeriod();
-  await prisma.$executeRaw`
-    INSERT INTO workspace_usage (id, workspace_id, period, chat_messages, created_at, updated_at)
-    VALUES (gen_random_uuid()::text, ${workspaceId}, ${period}, 1, NOW(), NOW())
-    ON CONFLICT (workspace_id, period)
-    DO UPDATE SET chat_messages = workspace_usage.chat_messages + 1, updated_at = NOW()
-  `;
+export async function trackChatMessage(): Promise<void> {
+  // Workspace removed — no-op
 }
 
-export async function trackChunks(
-  workspaceId: string,
-  count: number
-): Promise<void> {
-  const period = getCurrentPeriod();
-  await prisma.$executeRaw`
-    INSERT INTO workspace_usage (id, workspace_id, period, chunks_created, created_at, updated_at)
-    VALUES (gen_random_uuid()::text, ${workspaceId}, ${period}, ${count}, NOW(), NOW())
-    ON CONFLICT (workspace_id, period)
-    DO UPDATE SET chunks_created = workspace_usage.chunks_created + ${count}, updated_at = NOW()
-  `;
+export async function trackChunks(_count: number): Promise<void> {
+  // Workspace removed — no-op
 }
 
-export async function trackAIRequest(workspaceId: string): Promise<void> {
-  const period = getCurrentPeriod();
-  await prisma.$executeRaw`
-    INSERT INTO workspace_usage (id, workspace_id, period, ai_requests, created_at, updated_at)
-    VALUES (gen_random_uuid()::text, ${workspaceId}, ${period}, 1, NOW(), NOW())
-    ON CONFLICT (workspace_id, period)
-    DO UPDATE SET ai_requests = workspace_usage.ai_requests + 1, updated_at = NOW()
-  `;
+export async function trackAIRequest(): Promise<void> {
+  // Workspace removed — no-op
 }
 
-export async function trackEmbeddingRequest(
-  workspaceId: string
-): Promise<void> {
-  const period = getCurrentPeriod();
-  await prisma.$executeRaw`
-    INSERT INTO workspace_usage (id, workspace_id, period, embedding_requests, created_at, updated_at)
-    VALUES (gen_random_uuid()::text, ${workspaceId}, ${period}, 1, NOW(), NOW())
-    ON CONFLICT (workspace_id, period)
-    DO UPDATE SET embedding_requests = workspace_usage.embedding_requests + 1, updated_at = NOW()
-  `;
+export async function trackEmbeddingRequest(): Promise<void> {
+  // Workspace removed — no-op
 }
 
-export async function trackMCPExecution(workspaceId: string): Promise<void> {
-  const period = getCurrentPeriod();
-  await prisma.$executeRaw`
-    INSERT INTO workspace_usage (id, workspace_id, period, mcp_executions, created_at, updated_at)
-    VALUES (gen_random_uuid()::text, ${workspaceId}, ${period}, 1, NOW(), NOW())
-    ON CONFLICT (workspace_id, period)
-    DO UPDATE SET mcp_executions = workspace_usage.mcp_executions + 1, updated_at = NOW()
-  `;
+export async function trackMCPExecution(): Promise<void> {
+  // Workspace removed — no-op
 }
 
 // ============================================================
@@ -264,82 +212,38 @@ export async function getUsage(
   period?: string
 ): Promise<UsageSnapshot> {
   const p = period || getCurrentPeriod();
+  void workspaceId; // suppress unused warning
 
-  // Use transaction to ensure RLS context and all queries share the same connection
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT set_config('app.current_workspace_id', ${workspaceId}, false)`;
+  // WorkspaceUsage/WorkspaceSubscription models removed — return default usage
+  const limits = DEFAULT_LIMITS.free;
+  function pct(_used: number, max: number): number {
+    if (max === UNLIMITED) return 0;
+    if (max === 0) return 100;
+    return Math.min(100, Math.round((_used / max) * 100));
+  }
 
-    // getOrCreateUsage inline
-    let usage = await tx.workspaceUsage.findUnique({
-      where: { workspaceId_period: { workspaceId, period: p } },
-    });
-    if (!usage) {
-      usage = await tx.workspaceUsage.create({
-        data: { workspaceId, period: p },
-      });
-    }
-
-    // getPlanLimits inline
-    const sub = await tx.workspaceSubscription.findUnique({
-      where: { workspaceId },
-      include: { plan: true },
-    });
-
-    let limits: PlanLimits;
-    if (sub?.plan && isSubscriptionActive(sub.status)) {
-      if (sub.status === "trial" && isTrialExpired(sub.trialEndsAt)) {
-        limits = DEFAULT_LIMITS.free;
-      } else {
-        limits = {
-          maxDocuments: sub.plan.maxDocuments,
-          maxStorageMB: sub.plan.maxStorageMB,
-          maxChatMessages: sub.plan.maxChatMessages,
-          maxChunks: sub.plan.maxChunks,
-          maxAIRequests: sub.plan.maxAIRequests,
-          maxEmbeddingReqs: sub.plan.maxEmbeddingReqs,
-          maxMCPExecutions: sub.plan.maxMCPExecutions,
-          maxMembers: sub.plan.maxMembers,
-          maxWorkspaces: sub.plan.maxWorkspaces,
-        };
-      }
-    } else {
-      limits = DEFAULT_LIMITS.free;
-    }
-
-    const planName = sub?.plan?.displayName || "Free";
-
-    function pct(used: number, max: number): number {
-      if (max === UNLIMITED) return 0;
-      if (max === 0) return 100;
-      return Math.min(100, Math.round((used / max) * 100));
-    }
-
-    return {
-      period: p,
-      documentsCreated: usage.documentsCreated,
-      storageBytesUsed: Number(usage.storageBytesUsed),
-      storageMBUsed: Math.round(Number(usage.storageBytesUsed) / (1024 * 1024)),
-      chunksCreated: usage.chunksCreated,
-      chatMessages: usage.chatMessages,
-      aiRequests: usage.aiRequests,
-      embeddingRequests: usage.embeddingRequests,
-      mcpExecutions: usage.mcpExecutions,
-      limits,
-      planName,
-      usagePercent: {
-        documents: pct(usage.documentsCreated, limits.maxDocuments),
-        storage: pct(
-          Math.round(Number(usage.storageBytesUsed) / (1024 * 1024)),
-          limits.maxStorageMB
-        ),
-        chatMessages: pct(usage.chatMessages, limits.maxChatMessages),
-        chunks: pct(usage.chunksCreated, limits.maxChunks),
-        aiRequests: pct(usage.aiRequests, limits.maxAIRequests),
-        embeddingRequests: pct(usage.embeddingRequests, limits.maxEmbeddingReqs),
-        mcpExecutions: pct(usage.mcpExecutions, limits.maxMCPExecutions),
-      },
-    };
-  });
+  return {
+    period: p,
+    documentsCreated: 0,
+    storageBytesUsed: 0,
+    storageMBUsed: 0,
+    chunksCreated: 0,
+    chatMessages: 0,
+    aiRequests: 0,
+    embeddingRequests: 0,
+    mcpExecutions: 0,
+    limits,
+    planName: "Free",
+    usagePercent: {
+      documents: pct(0, limits.maxDocuments),
+      storage: pct(0, limits.maxStorageMB),
+      chatMessages: pct(0, limits.maxChatMessages),
+      chunks: pct(0, limits.maxChunks),
+      aiRequests: pct(0, limits.maxAIRequests),
+      embeddingRequests: pct(0, limits.maxEmbeddingReqs),
+      mcpExecutions: pct(0, limits.maxMCPExecutions),
+    },
+  };
 }
 
 // ============================================================
@@ -417,18 +321,7 @@ function getMetricValue(usage: UsageSnapshot, metric: keyof PlanLimits): number 
  * Check member limit for a workspace.
  */
 export async function checkMemberLimit(workspaceId: string): Promise<void> {
-  const limits = await getPlanLimits(workspaceId);
-  if (limits.maxMembers === UNLIMITED) return;
-
-  const memberCount = await prisma.workspaceMember.count({
-    where: { workspaceId },
-  });
-
-  if (memberCount >= limits.maxMembers) {
-    throw new LimitExceededError(
-      "maxMembers",
-      memberCount,
-      limits.maxMembers
-    );
-  }
+  // WorkspaceMember model removed — member check not available
+  void workspaceId;
+  return;
 }

@@ -38,7 +38,6 @@ export interface SimilarChunk {
   content: string;
   documentId: string;
   documentTitle: string;
-  workspaceId: string;
   similarity: number;
   chunkIndex: number;
   metadata: Record<string, unknown>;
@@ -82,19 +81,16 @@ const DEFAULT_MIN_SIMILARITY = 0.30;
  */
 export async function storeChunks(
   documentId: string,
-  workspaceId: string,
-  chunks: { content: string; embedding: number[]; index: number; metadata?: Record<string, unknown> }[]
+  chunks: { content: string; embedding: number[]; index: number; metadata?: Record<string, unknown> }[],
 ): Promise<void> {
   const batchSize = 50;
   for (let i = 0; i < chunks.length; i += batchSize) {
     const batch = chunks.slice(i, i + batchSize);
     await prisma.$transaction(async (tx) => {
-      // Set workspace context on the same connection used by the transaction
-      await tx.$executeRaw`SELECT set_config('app.current_workspace_id', ${workspaceId}, false)`;
       for (const chunk of batch) {
         await tx.$executeRaw`
-          INSERT INTO document_chunks (id, document_id, workspace_id, tenant_id, content, embedding, chunk_index, metadata, created_at)
-          VALUES (gen_random_uuid(), ${documentId}, ${workspaceId}, ${workspaceId}, ${chunk.content}, ${`[${chunk.embedding.join(",")}]`}::vector, ${chunk.index}, ${JSON.stringify(chunk.metadata || {})}::jsonb, NOW())
+          INSERT INTO document_chunks (id, document_id, content, embedding, chunk_index, metadata, created_at)
+          VALUES (gen_random_uuid(), ${documentId}, ${chunk.content}, ${`[${chunk.embedding.join(",")}]`}::vector, ${chunk.index}, ${JSON.stringify(chunk.metadata || {})}::jsonb, NOW())
         `;
       }
     });
@@ -108,7 +104,6 @@ export async function storeChunks(
 export async function searchSimilarChunks(
   queryEmbedding: number[],
   topK: number = 5,
-  workspaceId: string,
   minSimilarity: number = DEFAULT_MIN_SIMILARITY
 ): Promise<RetrievalResult> {
   const embeddingStr = `[${queryEmbedding.join(",")}]`;
@@ -121,7 +116,6 @@ export async function searchSimilarChunks(
     content: string;
     document_id: string;
     document_title: string;
-    workspace_id: string;
     similarity: number;
     chunk_index: number;
     metadata: Record<string, unknown>;
@@ -133,14 +127,13 @@ export async function searchSimilarChunks(
   }> = await prisma.$queryRaw`
     SELECT
       dc.id, dc.content, dc.document_id,
-      d.title as document_title, dc.workspace_id,
+      d.title as document_title,
       1 - (dc.embedding <=> ${embeddingStr}::vector) as similarity,
       dc.chunk_index, dc.metadata,
       dc.chunk_type, dc.ocr_text, dc.caption, dc.image_summary, dc.image_url
     FROM document_chunks dc
     JOIN documents d ON d.id = dc.document_id
-    WHERE dc.workspace_id = ${workspaceId}
-      AND dc.embedding IS NOT NULL
+    WHERE dc.embedding IS NOT NULL
     ORDER BY dc.embedding <=> ${embeddingStr}::vector
     LIMIT ${fetchLimit}
   `;
@@ -173,7 +166,6 @@ export async function searchSimilarChunks(
       content: r.content,
       documentId: r.document_id,
       documentTitle: r.document_title || "Untitled",
-      workspaceId: r.workspace_id,
       similarity: Number(r.similarity),
       chunkIndex: r.chunk_index,
       metadata: r.metadata,
@@ -201,7 +193,6 @@ export async function searchSimilarChunks(
 export interface HybridSearchOptions {
   queryText: string;
   queryEmbedding: number[];
-  workspaceId: string;
   topK?: number;
   vectorWeight?: number;
   bm25Weight?: number;
@@ -221,7 +212,6 @@ export async function hybridSearch(
   const {
     queryText,
     queryEmbedding,
-    workspaceId,
     topK = 20,
     vectorWeight = 0.6,
     bm25Weight = 0.4,
@@ -237,7 +227,6 @@ export async function hybridSearch(
       content: string;
       document_id: string;
       document_title: string;
-      workspace_id: string;
       chunk_type: string;
       similarity: number;
       bm25_score: number;
@@ -251,14 +240,13 @@ export async function hybridSearch(
     }> = await prisma.$queryRaw`
       SELECT
         hs.id, hs.content, hs.document_id,
-        d.title as document_title, d.workspace_id,
+        d.title as document_title,
         hs.chunk_type, hs.similarity, hs.bm25_score, hs.rrf_score,
         dc.chunk_index, dc.metadata,
         hs.ocr_text, hs.caption, hs.image_summary, hs.image_url
       FROM hybrid_search(
         ${queryText}::text,
         ${embeddingStr}::vector(1536),
-        ${workspaceId}::text,
         ${Math.max(topK * 4, 50)}::integer,
         ${vectorWeight}::double precision,
         ${bm25Weight}::double precision
@@ -291,7 +279,6 @@ export async function hybridSearch(
         content: r.content,
         documentId: r.document_id,
         documentTitle: r.document_title || "Untitled",
-        workspaceId: r.workspace_id,
         similarity: Number(r.similarity),
         chunkIndex: r.chunk_index,
         metadata: r.metadata,
@@ -320,7 +307,7 @@ export async function hybridSearch(
       "[Vectorstore] Hybrid search failed, falling back to vector-only:",
       error instanceof Error ? error.message : error
     );
-    return searchSimilarChunks(queryEmbedding, topK, workspaceId);
+    return searchSimilarChunks(queryEmbedding, topK);
   }
 }
 

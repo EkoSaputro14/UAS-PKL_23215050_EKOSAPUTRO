@@ -1,10 +1,9 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma, resolveWorkspaceId } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { deleteDocumentChunks } from "@/lib/rag/vectorstore";
 import { unlink } from "fs/promises";
 import { join } from "path";
-import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
 
 export async function GET(
   request: NextRequest,
@@ -87,8 +86,6 @@ export async function DELETE(
       );
     }
 
-    const workspaceId = await resolveWorkspaceId(session.user.id! as string);
-
     // Delete vector embeddings
     await deleteDocumentChunks(id);
 
@@ -107,16 +104,6 @@ export async function DELETE(
       where: { id },
     });
 
-    // Audit: document deleted
-    logAudit({
-      workspaceId,
-      actorId: session.user.id! as string,
-      actorType: "user",
-      action: AUDIT_ACTIONS.DOCUMENT_DELETE,
-      resourceType: "document",
-      resourceId: id,
-      metadata: { title: document.title, fileType: document.fileType },
-    });
 
     return Response.json({ success: true });
   } catch (error) {

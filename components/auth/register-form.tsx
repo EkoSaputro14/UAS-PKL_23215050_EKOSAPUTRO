@@ -14,9 +14,37 @@ export default function RegisterForm() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
 
+    // Client-side validation
+    if (!name.trim()) {
+      toast.error("Nama wajib diisi");
+      setLoading(false);
+      return;
+    }
+    if (!email.trim()) {
+      toast.error("Email wajib diisi");
+      setLoading(false);
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Format email tidak valid");
+      setLoading(false);
+      return;
+    }
+    if (!password) {
+      toast.error("Password wajib diisi");
+      setLoading(false);
+      return;
+    }
+    if (password.length < 6) {
+      toast.error("Password minimal 6 karakter");
+      setLoading(false);
+      return;
+    }
     if (password !== confirmPassword) {
       toast.error("Password tidak cocok");
       setLoading(false);

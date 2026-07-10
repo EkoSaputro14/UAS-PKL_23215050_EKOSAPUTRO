@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma, resolveWorkspaceId, setWorkspaceContext } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: NextRequest,
@@ -16,10 +16,6 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const topK = Math.min(20, Math.max(1, parseInt(searchParams.get("topK") || "5")));
 
-    // Set workspace context for tenant isolation
-    const workspaceId = await resolveWorkspaceId(session.user.id! as string);
-    await setWorkspaceContext(workspaceId);
-
     // Get the source chunk
     const chunk = await prisma.documentChunk.findFirst({
       where: { id },
@@ -27,11 +23,11 @@ export async function GET(
         id: true,
         content: true,
         documentId: true,
-        document: { select: { userId: true, workspaceId: true } },
+        document: { select: { userId: true } },
       },
     });
 
-    if (!chunk || chunk.document.workspaceId !== workspaceId) {
+    if (!chunk || chunk.document.userId !== session.user.id!) {
       return Response.json({ error: "Chunk not found" }, { status: 404 });
     }
 
@@ -51,7 +47,7 @@ export async function GET(
         dc.chunk_index,
         1 - (dc.embedding <=> (SELECT embedding FROM document_chunks WHERE id = ${id})) as similarity
       FROM document_chunks dc
-      WHERE dc.workspace_id = ${workspaceId}
+      WHERE dc.user_id = ${session.user.id!}
         AND dc.id != ${id}
         AND dc.embedding IS NOT NULL
       ORDER BY dc.embedding <=> (SELECT embedding FROM document_chunks WHERE id = ${id})

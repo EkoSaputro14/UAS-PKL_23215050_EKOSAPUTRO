@@ -1,8 +1,18 @@
 import { NextRequest } from "next/server";
-import { validateApiKey } from "@/lib/api-keys";
-import { hasFeature } from "@/lib/entitlements";
 import { setWorkspaceContext, resolveWorkspaceId } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+
+// API keys module removed — stub implementations
+async function validateApiKey(_token: string): Promise<{ workspaceId: string; apiKeyId: string } | null> {
+  // No-op stub — api-keys module removed
+  return null;
+}
+
+// Entitlements module removed — stub implementation
+async function hasFeature(_workspaceId: string, _feature: string): Promise<boolean> {
+  // No-op stub — entitlements module removed
+  return true;
+}
 
 // ============================================================
 // API Authentication Middleware

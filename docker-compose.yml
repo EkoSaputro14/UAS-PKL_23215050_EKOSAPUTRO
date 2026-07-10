@@ -84,6 +84,11 @@ services:
       OPENAI_MODEL: "${OPENAI_MODEL:-gpt-4o-mini}"
       OPENAI_EMBEDDING_MODEL: "${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}"
 
+      # Vision Provider (for image OCR — uses Google Gemini vision model)
+      VISION_API_KEY: "${VISION_API_KEY:-${GOOGLE_API_KEY:-}}"
+      VISION_BASE_URL: "${VISION_BASE_URL:-${GOOGLE_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai/}}"
+      VISION_MODEL: "${VISION_MODEL:-gemini-2.0-flash}"
+
       # LM Studio (use if AI_PROVIDER=lmstudio)
       LMSTUDIO_BASE_URL: "${LMSTUDIO_BASE_URL:-http://host.docker.internal:1234/v1}"
       LMSTUDIO_MODEL: "${LMSTUDIO_MODEL:-local-model}"
@@ -152,7 +157,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 3G
+          memory: 6G
 
   # ==========================================
   # Baileys WhatsApp Service (Alternative)

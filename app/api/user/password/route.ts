@@ -1,7 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
 
 // POST — change password
 export async function POST(request: Request) {
@@ -64,16 +63,6 @@ export async function POST(request: Request) {
       data: { passwordHash: newHash },
     });
 
-    // Audit — password change invalidates all existing JWTs
-    logAudit({
-      workspaceId: "system",
-      actorId: userId,
-      actorType: "user",
-      action: "user.password_change",
-      resourceType: "user",
-      resourceId: userId,
-      metadata: { note: "All existing sessions invalidated" },
-    });
 
     return Response.json({
       success: true,

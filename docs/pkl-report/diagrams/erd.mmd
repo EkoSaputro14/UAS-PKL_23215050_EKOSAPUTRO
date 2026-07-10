@@ -1,0 +1,149 @@
+erDiagram
+    USER {
+        uuid id PK
+        string email UK
+        string name
+        string passwordHash
+        boolean isSuperAdmin
+        boolean suspended
+    }
+    WORKSPACE {
+        uuid id PK
+        string name
+        string slug UK
+        string description
+    }
+    WORKSPACE_MEMBER {
+        uuid id PK
+        uuid workspaceId FK
+        uuid userId FK
+        string role
+    }
+    FOLDER {
+        uuid id PK
+        string name
+        uuid userId FK
+        uuid workspaceId FK
+    }
+    DOCUMENT {
+        uuid id PK
+        uuid userId FK
+        uuid workspaceId FK
+        string title
+        string fileType
+        string status
+        int chunkCount
+    }
+    DOCUMENT_CHUNK {
+        uuid id PK
+        uuid documentId FK
+        uuid workspaceId FK
+        text content
+        vector1536 embedding
+        int chunkIndex
+        string chunkType
+    }
+    CHAT_SESSION {
+        uuid id PK
+        uuid userId FK
+        uuid workspaceId FK
+        string title
+    }
+    CHAT_MESSAGE {
+        uuid id PK
+        uuid sessionId FK
+        string role
+        text content
+        json sources
+    }
+    WIDGET {
+        uuid id PK
+        uuid workspaceId FK
+        string name
+        string slug UK
+        boolean isActive
+        boolean leadCaptureEnabled
+    }
+    WIDGET_CONVERSATION {
+        uuid id PK
+        uuid widgetId FK
+        uuid workspaceId FK
+        string visitorId
+        string leadName
+        string leadEmail
+        string leadScore
+        string leadStatus
+        string leadIntent
+    }
+    WIDGET_MESSAGE {
+        uuid id PK
+        uuid conversationId FK
+        string role
+        text content
+    }
+    WHATSAPP_CONFIG {
+        uuid id PK
+        uuid workspaceId FK
+        string phoneNumberId
+        boolean isEnabled
+    }
+    WHATSAPP_CONVERSATION {
+        uuid id PK
+        uuid configId FK
+        uuid workspaceId FK
+        string waId
+        string contactName
+        string leadScore
+        string leadStatus
+    }
+    WHATSAPP_MESSAGE {
+        uuid id PK
+        uuid conversationId FK
+        string role
+        text content
+        string messageType
+    }
+    SUBSCRIPTION_PLAN {
+        uuid id PK
+        string name UK
+        int maxDocuments
+        int maxChatMessages
+    }
+    WORKSPACE_SUBSCRIPTION {
+        uuid id PK
+        uuid workspaceId FK
+        uuid planId FK
+        string status
+    }
+    SETTING {
+        uuid id PK
+        string key UK
+        string value
+    }
+    WORKSPACE_SETTING {
+        uuid id PK
+        uuid workspaceId FK
+        string key
+        string value
+    }
+
+    USER ||--o{ WORKSPACE_MEMBER : "belongs to"
+    WORKSPACE ||--o{ WORKSPACE_MEMBER : "has members"
+    WORKSPACE ||--o{ DOCUMENT : "contains"
+    WORKSPACE ||--o{ FOLDER : "contains"
+    WORKSPACE ||--o{ CHAT_SESSION : "has"
+    WORKSPACE ||--o{ WIDGET : "has"
+    WORKSPACE ||--o{ WHATSAPP_CONFIG : "has"
+    WORKSPACE ||--o| WORKSPACE_SUBSCRIPTION : "subscribes"
+    WORKSPACE ||--o{ WORKSPACE_SETTING : "configures"
+    USER ||--o{ DOCUMENT : "uploads"
+    USER ||--o{ CHAT_SESSION : "creates"
+    USER ||--o{ FOLDER : "organizes"
+    DOCUMENT ||--o{ DOCUMENT_CHUNK : "splits into"
+    FOLDER ||--o{ DOCUMENT : "groups"
+    CHAT_SESSION ||--o{ CHAT_MESSAGE : "contains"
+    WIDGET ||--o{ WIDGET_CONVERSATION : "receives"
+    WIDGET_CONVERSATION ||--o{ WIDGET_MESSAGE : "contains"
+    WHATSAPP_CONFIG ||--o{ WHATSAPP_CONVERSATION : "handles"
+    WHATSAPP_CONVERSATION ||--o{ WHATSAPP_MESSAGE : "contains"
+    SUBSCRIPTION_PLAN ||--o{ WORKSPACE_SUBSCRIPTION : "defines"

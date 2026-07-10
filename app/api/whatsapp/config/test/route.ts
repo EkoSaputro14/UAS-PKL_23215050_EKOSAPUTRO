@@ -11,9 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await requireDashboardAuth(request);
 
-    const config = await prisma.whatsAppConfig.findUnique({
-      where: { workspaceId: auth.workspaceId },
-    });
+    const config = await prisma.whatsAppConfig.findFirst();
 
     if (!config) {
       return Response.json(
@@ -26,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     // Update config with verified info
     await prisma.whatsAppConfig.update({
-      where: { workspaceId: auth.workspaceId },
+      where: { id: config.id },
       data: {
         phoneNumber: phoneInfo.displayPhoneNumber,
         displayName: phoneInfo.verifiedName,

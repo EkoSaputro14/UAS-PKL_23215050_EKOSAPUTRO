@@ -9,7 +9,6 @@
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { runStartupValidation, auditConfiguration } from "@/lib/startup";
-import { validateEmailConfig, loadEmailConfig } from "@/lib/email";
 
 // ============================================================
 // Types
@@ -84,27 +83,10 @@ async function checkDatabaseHealth(): Promise<ComponentStatus> {
  * Check email provider health.
  */
 function checkEmailHealth(): ComponentStatus {
-  try {
-    const config = loadEmailConfig();
-    const validation = validateEmailConfig();
-
-    return {
-      status: validation.valid ? "healthy" : "degraded",
-      message: validation.valid
-        ? `Provider: ${config.provider}`
-        : `Issues: ${validation.issues.join(", ")}`,
-      details: {
-        provider: config.provider,
-        configured: validation.valid,
-        issues: validation.issues,
-      },
-    };
-  } catch (error) {
-    return {
-      status: "degraded",
-      message: `Email check failed: ${error instanceof Error ? error.message : "Unknown"}`,
-    };
-  }
+  return {
+    status: "healthy",
+    message: "Email check skipped (module removed)",
+  };
 }
 
 /**

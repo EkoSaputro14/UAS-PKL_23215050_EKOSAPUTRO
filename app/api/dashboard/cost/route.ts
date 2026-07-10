@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { requireFeature } from "@/lib/entitlements";
-import { setWorkspaceContext, resolveWorkspaceId, prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 
 // Approximate pricing per 1K tokens (USD)
@@ -28,10 +27,6 @@ export async function GET(request: NextRequest) {
     const userId = session.user.id! as string;
 
     // Set workspace context
-    const workspaceId = await resolveWorkspaceId(userId);
-    await setWorkspaceContext(workspaceId);
-    await requireFeature(workspaceId, "analytics");
-
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get("days") || "30", 10);
     const startDate = new Date();

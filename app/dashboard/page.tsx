@@ -2,7 +2,6 @@ import Link from "next/link";
 import DashboardShell from "@/components/layout/dashboard-shell";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { resolveWorkspaceId } from "@/lib/prisma";
 import {
   MessageSquare,
   Users,
@@ -22,42 +21,22 @@ export default async function DashboardPage() {
   let documentCount = 0;
   let totalSessions = 0;
   let totalMessages = 0;
-  let leadCount = 0;
 
   try {
     const userId = session?.user?.id as string;
-    const workspaceId = userId ? await resolveWorkspaceId(userId) : null;
 
-    if (workspaceId && userId) {
-      const stats = await prisma.$transaction(async (tx) => {
-        await tx.$executeRawUnsafe(
-          `SELECT set_config('app.current_workspace_id', $1, true)`,
-          workspaceId
-        );
+    if (userId) {
+      const [docs, sessions, messages] = await Promise.all([
+        prisma.document.count({ where: { userId } }),
+        prisma.chatSession.count({ where: { userId } }),
+        prisma.chatMessage.count({
+          where: { session: { userId } },
+        }),
+      ]);
 
-        const [docs, sessions, messages, leads] = await Promise.all([
-          tx.document.count({ where: { workspaceId } }),
-          tx.widgetConversation.count({ where: { workspaceId } }),
-          tx.widgetMessage.count({ where: { workspaceId } }),
-          tx.widgetConversation.count({
-            where: {
-              workspaceId,
-              OR: [
-                { leadEmail: { not: null } },
-                { leadWhatsApp: { not: null } },
-                { leadName: { not: null } },
-              ],
-            },
-          }),
-        ]);
-
-        return { docs, sessions, messages, leads };
-      });
-
-      documentCount = stats.docs;
-      totalSessions = stats.sessions;
-      totalMessages = stats.messages;
-      leadCount = stats.leads;
+      documentCount = docs;
+      totalSessions = sessions;
+      totalMessages = messages;
     }
   } catch (error) {
     console.error("Failed to fetch dashboard stats:", error);
@@ -81,7 +60,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <Link
             href="/knowledge/documents"
             className="rounded-lg border p-4 hover:bg-muted/50 transition-colors"
@@ -102,17 +81,6 @@ export default async function DashboardPage() {
               <span className="text-xs font-medium">Percakapan</span>
             </div>
             <p className="text-2xl font-bold">{totalSessions}</p>
-          </Link>
-
-          <Link
-            href="/leads"
-            className="rounded-lg border p-4 hover:bg-muted/50 transition-colors"
-          >
-            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-              <Users className="size-4" />
-              <span className="text-xs font-medium">Leads</span>
-            </div>
-            <p className="text-2xl font-bold">{leadCount}</p>
           </Link>
 
           <div className="rounded-lg border p-4">
@@ -172,14 +140,6 @@ export default async function DashboardPage() {
                 Chatbot Anda telah menjawab <strong>{totalMessages}</strong> pesan
                 dari <strong>{totalSessions}</strong> percakapan.
               </p>
-              {leadCount > 0 && (
-                <p>
-                  <strong>{leadCount}</strong> lead tertangkap.{" "}
-                  <Link href="/leads" className="text-primary hover:underline">
-                    Lihat leads →
-                  </Link>
-                </p>
-              )}
             </div>
           </div>
         )}

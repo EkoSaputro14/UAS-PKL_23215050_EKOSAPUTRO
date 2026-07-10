@@ -65,53 +65,53 @@ export async function getWorkspaceContext(): Promise<string | null> {
  * @returns The workspace ID
  */
 export async function resolveWorkspaceId(userId: string, selectedWorkspaceId?: string | null): Promise<string> {
-  // CRITICAL: Set app.current_user_id BEFORE any RLS-gated queries.
-  // The workspaces SELECT policy requires this setting to evaluate membership.
-  // Use is_local=false so the setting persists across the connection pool.
-  await prisma.$executeRaw`SELECT set_config('app.current_user_id', ${userId}, false)`;
+  // Use a single transaction to guarantee set_config + query use the SAME connection.
+  // Without this, Prisma's connection pool may assign different connections, causing
+  // get_user_workspace_ids to return empty (RLS can't see app.current_user_id).
+  return prisma.$transaction(async (tx) => {
+    // Set user context on THIS connection
+    await tx.$executeRaw`SELECT set_config('app.current_user_id', ${userId}, false)`;
 
-  // If user selected a workspace, verify membership and use it
-  if (selectedWorkspaceId) {
-    const membership = await prisma.workspaceMember.findFirst({
-      where: { userId, workspaceId: selectedWorkspaceId },
-      select: { workspaceId: true },
-    });
-
-    if (membership) {
-      return membership.workspaceId;
+    // If user selected a workspace, verify membership and use it
+    if (selectedWorkspaceId) {
+      // WorkspaceMember model removed — use raw query for membership check
+      const membership = await tx.$queryRaw<Array<{ workspace_id: string }>>`
+        SELECT workspace_id FROM workspace_members
+        WHERE user_id = ${userId} AND workspace_id = ${selectedWorkspaceId}
+        LIMIT 1
+      `;
+      if (membership.length > 0) {
+        return membership[0].workspace_id;
+      }
     }
-    // Selected workspace not found or user not a member — fall through to owner
-  }
 
-  // Use SECURITY DEFINER function to query workspace_members.
-  // The workspace_members RLS policy requires app.current_workspace_id, which we don't have yet
-  // (chicken-and-egg: need workspace ID to set context, need context to query workspace_members).
-  // The SECURITY DEFINER function bypasses RLS while maintaining data integrity.
-  const memberships = await prisma.$queryRaw<Array<{ workspace_id: string; role: string }>>`
-    SELECT workspace_id, role FROM get_user_workspace_ids(${userId})
-  `;
+    // Query workspace memberships — SECURITY DEFINER function bypasses RLS
+    const memberships = await tx.$queryRaw<Array<{ workspace_id: string; role: string }>>`
+      SELECT workspace_id, role FROM get_user_workspace_ids(${userId})
+    `;
 
-  // Find owner workspace
-  const ownerMembership = memberships.find((m) => m.role === "owner");
-  if (ownerMembership) {
-    return ownerMembership.workspace_id;
-  }
+    // Find owner workspace
+    const ownerMembership = memberships.find((m) => m.role === "owner");
+    if (ownerMembership) {
+      return ownerMembership.workspace_id;
+    }
 
-  // If any membership exists, use the first one
-  if (memberships.length > 0) {
-    return memberships[0].workspace_id;
-  }
+    // If any membership exists, use the first one
+    if (memberships.length > 0) {
+      return memberships[0].workspace_id;
+    }
 
-  // Create default workspace for user using SECURITY DEFINER function
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  const workspaceName = user?.name ? `${user.name}'s Workspace` : "Workspace";
-  const slug = `ws-${(user?.name || "user").toLowerCase().replace(/\s+/g, "-")}-${userId.substring(0, 8)}`;
+    // No workspace found — create one using SECURITY DEFINER function
+    const user = await tx.user.findUnique({ where: { id: userId } });
+    const workspaceName = user?.name ? `${user.name}'s Workspace` : "Workspace";
+    const slug = `ws-${(user?.name || "user").toLowerCase().replace(/\s+/g, "-")}-${userId.substring(0, 8)}`;
 
-  const workspaceId = await prisma.$queryRaw<Array<{ create_user_workspace: string }>>`
-    SELECT create_user_workspace(${userId}, ${workspaceName}, ${slug}) as create_user_workspace
-  `;
+    const result = await tx.$queryRaw<Array<{ create_user_workspace: string }>>`
+      SELECT create_user_workspace(${userId}, ${workspaceName}, ${slug}) as create_user_workspace
+    `;
 
-  return workspaceId[0].create_user_workspace;
+    return result[0].create_user_workspace;
+  });
 }
 
 /**
@@ -121,10 +121,10 @@ export async function resolveWorkspaceId(userId: string, selectedWorkspaceId?: s
  * @returns Array of workspace IDs and roles
  */
 export async function getUserWorkspaces(userId: string): Promise<Array<{ workspaceId: string; role: string }>> {
-  return prisma.workspaceMember.findMany({
-    where: { userId },
-    select: { workspaceId: true, role: true },
-  });
+  return prisma.$queryRaw<Array<{ workspace_id: string; role: string }>>`
+    SELECT workspace_id, role FROM workspace_members
+    WHERE user_id = ${userId}
+  `.then(rows => rows.map(r => ({ workspaceId: r.workspace_id, role: r.role })));
 }
 
 /**
@@ -140,32 +140,35 @@ export async function getUserWorkspacesWithDetails(userId: string): Promise<Arra
   role: string;
   memberCount: number;
 }>> {
-  const memberships = await prisma.workspaceMember.findMany({
-    where: { userId },
-    include: {
-      workspace: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          _count: {
-            select: { members: true },
-          },
-        },
-      },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+  // Use raw queries since WorkspaceMember/Workspace models are removed from Prisma schema
+  const memberships = await prisma.$queryRaw<Array<{
+    workspace_id: string; role: string; created_at: Date;
+  }>>`
+    SELECT workspace_id, role, created_at FROM workspace_members
+    WHERE user_id = ${userId}
+    ORDER BY created_at ASC
+  `;
 
-  return memberships
-    .filter((m) => m.workspace) // Guard against deleted workspaces
-    .map((m) => ({
-      id: m.workspace.id,
-      name: m.workspace.name,
-      slug: m.workspace.slug,
-      role: m.role,
-      memberCount: m.workspace._count.members,
-    }));
+  const results: Array<{ id: string; name: string; slug: string; role: string; memberCount: number }> = [];
+
+  for (const m of memberships) {
+    const workspace = await prisma.$queryRaw<Array<{ id: string; name: string; slug: string; member_count: bigint }>>`
+      SELECT id, name, slug, (SELECT COUNT(*) FROM workspace_members WHERE workspace_id = w.id)::bigint as member_count
+      FROM workspaces w WHERE id = ${m.workspace_id}
+    `;
+    if (workspace.length > 0 && workspace[0]) {
+      const ws = workspace[0];
+      results.push({
+        id: ws.id,
+        name: ws.name,
+        slug: ws.slug,
+        role: m.role,
+        memberCount: Number(ws.member_count),
+      });
+    }
+  }
+
+  return results;
 }
 
 // ============================================================

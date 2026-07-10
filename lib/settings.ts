@@ -162,13 +162,14 @@ export async function setWorkspaceSetting(
   key: string,
   value: string
 ): Promise<void> {
-  // Encrypt secret values before storing
+  // WorkspaceSetting model removed — use raw query for upsert
   const storedValue = isSecretKey(key) ? encrypt(value) : value;
-  await prisma.workspaceSetting.upsert({
-    where: { workspaceId_key: { workspaceId, key } },
-    update: { value: storedValue },
-    create: { workspaceId, key, value: storedValue },
-  });
+  await prisma.$executeRaw`
+    INSERT INTO workspace_settings (workspace_id, key, value, created_at, updated_at)
+    VALUES (${workspaceId}, ${key}, ${storedValue}, NOW(), NOW())
+    ON CONFLICT (workspace_id, key)
+    DO UPDATE SET value = ${storedValue}, updated_at = NOW()
+  `;
   workspaceSettingsCache.delete(workspaceId);
 }
 
@@ -181,11 +182,12 @@ export async function setWorkspaceSettings(
 ): Promise<void> {
   for (const [key, value] of Object.entries(entries)) {
     const storedValue = isSecretKey(key) ? encrypt(value) : value;
-    await prisma.workspaceSetting.upsert({
-      where: { workspaceId_key: { workspaceId, key } },
-      update: { value: storedValue },
-      create: { workspaceId, key, value: storedValue },
-    });
+    await prisma.$executeRaw`
+      INSERT INTO workspace_settings (workspace_id, key, value, created_at, updated_at)
+      VALUES (${workspaceId}, ${key}, ${storedValue}, NOW(), NOW())
+      ON CONFLICT (workspace_id, key)
+      DO UPDATE SET value = ${storedValue}, updated_at = NOW()
+    `;
   }
   workspaceSettingsCache.delete(workspaceId);
 }

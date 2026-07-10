@@ -1,0 +1,19 @@
+flowchart LR
+    W["Widget Chat"] --> WC["Widget Conversation"]
+    WA["WhatsApp"] --> WAC["WhatsApp Conversation"]
+    WC --> AI["AI Analysis\n(Intent, Interest,\nBudget, Timeline)"]
+    WAC --> AI
+    AI --> LS["Lead Scoring\n(Low/Medium/High)"]
+    LS --> LST["Lead Status\nnew → contacted →\nqualified → converted"]
+    LST --> LD["Leads Dashboard"]
+    LD --> DET["Lead Detail\n(Score, Intent,\nSummary, Contact)"]
+    DET --> FU["Follow-up\nAutomation"]
+    FU --> EM["Email"]
+    FU --> TG["Telegram"]
+    FU --> DC["Discord"]
+
+    style W fill:#cd8c68,color:#fff
+    style WA fill:#25D366,color:#fff
+    style AI fill:#5baaad,color:#fff
+    style LS fill:#1e3a5f,color:#fff
+    style LD fill:#cd8c68,color:#fff

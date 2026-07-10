@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma, resolveWorkspaceId } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
@@ -9,14 +9,9 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const workspaceId = await resolveWorkspaceId(
-      session.user.id!,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (session as any).user.selectedWorkspaceId
-    );
 
     const folders = await prisma.folder.findMany({
-      where: { workspaceId },
+      where: { userId: session.user.id! },
       orderBy: { name: "asc" },
       include: {
         _count: { select: { documents: true } },
@@ -37,11 +32,6 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const workspaceId = await resolveWorkspaceId(
-      session.user.id!,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (session as any).user.selectedWorkspaceId
-    );
 
     const body = await request.json();
     const { name } = body;
@@ -54,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Check if folder with same name already exists in workspace
     const existing = await prisma.folder.findFirst({
-      where: { name: trimmedName, workspaceId },
+      where: { name: trimmedName, userId: session.user.id! },
     });
 
     if (existing) {
@@ -68,7 +58,6 @@ export async function POST(request: NextRequest) {
       data: {
         name: trimmedName,
         userId: session.user.id!,
-        workspaceId,
       },
     });
 
@@ -86,11 +75,6 @@ export async function PATCH(request: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const workspaceId = await resolveWorkspaceId(
-      session.user.id!,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (session as any).user.selectedWorkspaceId
-    );
 
     const body = await request.json();
     const { id, name } = body;
@@ -103,7 +87,7 @@ export async function PATCH(request: NextRequest) {
 
     // Check if folder exists and belongs to this workspace
     const existing = await prisma.folder.findFirst({
-      where: { id, workspaceId },
+      where: { id, userId: session.user.id! },
     });
 
     if (!existing) {
@@ -112,7 +96,7 @@ export async function PATCH(request: NextRequest) {
 
     // Check for duplicate name
     const duplicate = await prisma.folder.findFirst({
-      where: { name: trimmedName, workspaceId, id: { not: id } },
+      where: { name: trimmedName, userId: session.user.id!, id: { not: id } },
     });
 
     if (duplicate) {
@@ -141,11 +125,6 @@ export async function DELETE(request: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const workspaceId = await resolveWorkspaceId(
-      session.user.id!,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (session as any).user.selectedWorkspaceId
-    );
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -155,7 +134,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const folder = await prisma.folder.findFirst({
-      where: { id, workspaceId },
+      where: { id, userId: session.user.id! },
     });
 
     if (!folder) {

@@ -205,7 +205,7 @@ export default function UploadForm() {
             setQueue((prev) =>
               prev.map((q) =>
                 q.id === itemId
-                  ? { ...q, processingHint: doc.chunkCount > 0 ? `${doc.chunkCount} chunks dibuat` : undefined }
+                  ? { ...q, processingHint: doc.chunkCount > 0 ? `${doc.chunkCount} ${doc.chunkCount === 1 ? "chunk" : "chunks"} dibuat` : undefined }
                   : q
               )
             );
@@ -498,7 +498,7 @@ export default function UploadForm() {
                             <div className="flex items-center gap-1.5 text-emerald-500">
                               <CheckCircle2 className="size-3.5" />
                               <span className="text-xs font-medium">
-                                Selesai{item.chunkCount ? ` • ${item.chunkCount} chunks` : ""}
+                                Selesai{item.chunkCount ? ` • ${item.chunkCount} ${item.chunkCount === 1 ? "chunk" : "chunks"}` : ""}
                               </span>
                             </div>
                           )}
@@ -543,7 +543,7 @@ export default function UploadForm() {
                       {!isActive && item.status !== "pending" && (
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {item.size}
-                          {item.status === "complete" && item.chunkCount ? ` • ${item.chunkCount} chunks siap dicari` : ""}
+                          {item.status === "complete" && item.chunkCount ? ` • ${item.chunkCount} ${item.chunkCount === 1 ? "chunk" : "chunks"} siap dicari` : ""}
                         </p>
                       )}
 

@@ -6,7 +6,18 @@
 
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-import { validateEmailConfig } from "@/lib/email";
+
+function validateEmailConfig(): { provider: string; issues: string[] } {
+  const provider = process.env.EMAIL_PROVIDER || "resend";
+  const issues: string[] = [];
+  if (provider === "resend" && !process.env.RESEND_API_KEY) {
+    issues.push("RESEND_API_KEY is not set");
+  }
+  if (!process.env.EMAIL_FROM) {
+    issues.push("EMAIL_FROM is not set");
+  }
+  return { provider, issues };
+}
 
 // ============================================================
 // Types
@@ -170,29 +181,29 @@ async function checkRLSEnforcement(): Promise<ValidationCheck> {
  * Validate email provider configuration.
  */
 function checkEmailProvider(): ValidationCheck[] {
-  const result = validateEmailConfig();
-  return result.issues.length === 0
+  const emailResult = validateEmailConfig();
+  return emailResult.issues.length === 0
     ? [
         {
           name: "email_provider",
           category: "email",
           status: "pass" as const,
-          message: `Email provider "${result.provider}" is properly configured`,
+          message: `Email provider "${emailResult.provider}" is properly configured`,
           severity: "info" as const,
         },
       ]
     : [
-        ...result.issues.map(
-          (issue) =>
-            ({
-              name: "email_provider",
-              category: "email",
-              status: "warn" as const,
-              message: issue,
-              severity: "warn" as const,
-            }) satisfies ValidationCheck
-        ),
-      ];
+        ...emailResult.issues.map(
+          (issue: string) =>
+           ({
+             name: "email_provider",
+             category: "email",
+             status: "warn" as const,
+             message: issue,
+             severity: "warn" as const,
+           }) satisfies ValidationCheck
+       ),
+     ];
 }
 
 /**

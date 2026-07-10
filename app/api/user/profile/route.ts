@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
 
 // GET — current user profile
 export async function GET() {
@@ -70,16 +69,6 @@ export async function PATCH(request: Request) {
       select: { id: true, email: true, name: true, updatedAt: true },
     });
 
-    // Audit
-    logAudit({
-      workspaceId: "system",
-      actorId: userId,
-      actorType: "user",
-      action: "user.profile_update",
-      resourceType: "user",
-      resourceId: userId,
-      metadata: { fields: Object.keys(updateData) },
-    });
 
     return Response.json({ user: updated });
   } catch (error) {

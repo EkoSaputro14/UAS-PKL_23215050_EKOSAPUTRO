@@ -213,7 +213,7 @@ export default function SourceViewer() {
                   </div>
 
                   <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                    <span>{source.chunkCount} chunks</span>
+                    <span>{source.chunkCount} {source.chunkCount === 1 ? "chunk" : "chunks"}</span>
                     <span>
                       {source.referenceCount} reference{source.referenceCount !== 1 ? "s" : ""}
                     </span>

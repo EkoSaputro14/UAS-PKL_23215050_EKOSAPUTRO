@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma, resolveWorkspaceId, setWorkspaceContext } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/knowledge/images
@@ -19,17 +19,13 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20")));
     const skip = (page - 1) * limit;
 
-    // Set workspace context
-    const workspaceId = await resolveWorkspaceId(session.user.id! as string);
-    await setWorkspaceContext(workspaceId);
-
     // Image file types
     const imageTypes = ["png", "jpg", "jpeg", "webp", "image"];
 
     // Count total image documents
     const total = await prisma.document.count({
       where: {
-        workspaceId,
+        userId: session.user.id!,
         fileType: { in: imageTypes },
       },
     });
@@ -37,7 +33,7 @@ export async function GET(request: NextRequest) {
     // Fetch image documents with their first chunk (multimodal data)
     const documents = await prisma.document.findMany({
       where: {
-        workspaceId,
+        userId: session.user.id!,
         fileType: { in: imageTypes },
       },
       include: {

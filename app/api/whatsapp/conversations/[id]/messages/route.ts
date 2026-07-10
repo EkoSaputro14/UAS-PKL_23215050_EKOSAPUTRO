@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import { requireDashboardAuth, apiErrorResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { sendTextMessage } from "@/lib/whatsapp/client";
-import { logAudit } from "@/lib/audit";
 
 /**
  * GET /api/whatsapp/conversations/[id]/messages
@@ -21,7 +20,7 @@ export async function GET(
 
     // Verify conversation belongs to workspace
     const conversation = await prisma.whatsAppConversation.findFirst({
-      where: { id, workspaceId: auth.workspaceId },
+      where: { id },
     });
 
     if (!conversation) {
@@ -83,7 +82,7 @@ export async function POST(
 
     // Verify conversation belongs to workspace and get config
     const conversation = await prisma.whatsAppConversation.findFirst({
-      where: { id, workspaceId: auth.workspaceId },
+      where: { id },
       include: { config: true },
     });
 
@@ -110,7 +109,6 @@ export async function POST(
     const message = await prisma.whatsAppMessage.create({
       data: {
         conversationId: id,
-        workspaceId: auth.workspaceId,
         role: "assistant",
         content: content.trim(),
         messageType: "text",
@@ -128,17 +126,6 @@ export async function POST(
         lastMessagePreview: content.trim().substring(0, 200),
       },
     });
-
-    // Audit log
-    await logAudit({
-      workspaceId: auth.workspaceId,
-      actorId: auth.userId,
-      actorType: "user",
-      action: "whatsapp.manual_reply",
-      resourceType: "whatsapp_conversation",
-      resourceId: id,
-      metadata: { messageId: message.id, success: result.success },
-    }).catch(() => {});
 
     if (!result.success) {
       return Response.json(

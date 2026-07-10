@@ -1,0 +1,18 @@
+flowchart LR
+    A["User pilih file\natau URL"] --> B["Validasi file\n(tipe + ukuran)"]
+    B --> C["Autentikasi &\nOtorisasi"]
+    C --> D["Simpan file ke\npublic/uploads/"]
+    D --> E["Buat record\nDocument (status: processing)"]
+    E --> F["Masukkan ke\nProcessing Queue"]
+    F --> G{"Tipe dokumen?"}
+    G -->|Teks| H1["Parse PDF/DOCX/\nTXT/CSV/XLSX"]
+    G -->|Gambar| H2["OCR + Gemini\nVision caption"]
+    H1 --> I["Chunking\n(500 chars, 50 overlap)"]
+    H2 --> I
+    I --> J["Generate Embeddings\n(1536-dim)"]
+    J --> K["Store ke pgvector\n(batch 50 chunks)"]
+    K --> L["Update status\n→ ready"]
+    L --> M["Record usage\nmetrics"]
+
+    style A fill:#cd8c68,color:#fff
+    style M fill:#5baaad,color:#fff

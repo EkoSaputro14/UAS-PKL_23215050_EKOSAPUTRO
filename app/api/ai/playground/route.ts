@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     if (useRAG) {
       try {
         const queryEmbedding = await generateEmbedding(userMessage);
-        const { chunks: similarChunks } = await searchSimilarChunks(queryEmbedding, topK, workspaceId);
+        const { chunks: similarChunks } = await searchSimilarChunks(queryEmbedding, topK);
         if (similarChunks.length > 0) {
           context = similarChunks
             .map((chunk, i) => `[${i + 1}] ${chunk.content}`)

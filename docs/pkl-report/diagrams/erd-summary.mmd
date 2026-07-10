@@ -1,0 +1,32 @@
+---
+config:
+  theme: base
+  themeVariables:
+    fontSize: 11px
+---
+erDiagram
+    USER ||--o{ WORKSPACE_MEMBER : "member of"
+    USER ||--o{ DOCUMENT : "uploads"
+    USER ||--o{ CHAT_SESSION : "creates"
+    USER ||--o{ FOLDER : "organizes"
+    USER ||--o{ ANALYTICS_EVENT : "generates"
+    USER ||--o{ PROMPT_TEMPLATE : "creates"
+
+    WORKSPACE ||--o{ WORKSPACE_MEMBER : "has"
+    WORKSPACE ||--o{ DOCUMENT : "contains"
+    WORKSPACE ||--o{ FOLDER : "contains"
+    WORKSPACE ||--o{ CHAT_SESSION : "has"
+    WORKSPACE ||--o{ WIDGET : "has"
+    WORKSPACE ||--o{ WHATSAPP_CONFIG : "has"
+    WORKSPACE ||--o| WORKSPACE_SUBSCRIPTION : "subscribes"
+    WORKSPACE ||--o{ WORKSPACE_SETTING : "configures"
+
+    DOCUMENT ||--o{ DOCUMENT_CHUNK : "splits into"
+    FOLDER ||--o{ DOCUMENT : "groups"
+    CHAT_SESSION ||--o{ CHAT_MESSAGE : "contains"
+    WIDGET ||--o{ WIDGET_CONVERSATION : "receives"
+    WIDGET_CONVERSATION ||--o{ WIDGET_MESSAGE : "contains"
+    WHATSAPP_CONFIG ||--o{ WHATSAPP_CONVERSATION : "handles"
+    WHATSAPP_CONVERSATION ||--o{ WHATSAPP_MESSAGE : "contains"
+    SUBSCRIPTION_PLAN ||--o{ WORKSPACE_SUBSCRIPTION : "defines"
+    PROMPT_TEMPLATE ||--o{ PROMPT_VERSION : "versions"

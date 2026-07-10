@@ -27,9 +27,8 @@ export async function recordAnalyticsEvent(
     if (userId) {
       workspaceId = await resolveWorkspaceId(userId);
     } else {
-      // Fallback: use first workspace in system
-      const firstWorkspace = await prisma.workspace.findFirst({ select: { id: true } });
-      workspaceId = firstWorkspace?.id || "unknown";
+      // Workspace model removed — use "unknown" as fallback
+      workspaceId = "unknown";
     }
 
     await prisma.analyticsEvent.create({
@@ -37,7 +36,6 @@ export async function recordAnalyticsEvent(
         eventType,
         metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : null,
         userId: userId || null,
-        workspaceId,
       },
     });
   } catch (error) {

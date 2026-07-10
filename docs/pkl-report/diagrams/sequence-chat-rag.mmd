@@ -1,0 +1,71 @@
+---
+config:
+  theme: base
+  themeVariables:
+    actorBkg: "#E8D5C0"
+    actorBorder: "#cd8c68"
+    actorTextColor: "#1F1A16"
+    signalColor: "#1F1A16"
+    signalTextColor: "#1F1A16"
+    noteBkgColor: "#FAF8F5"
+    noteTextColor: "#1F1A16"
+    noteBorderColor: "#cd8c68"
+    activationBkgColor: "#F0F4F8"
+    activationBorderColor: "#5baaad"
+    fontSize: 13px
+---
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant FE as Frontend<br/>(ChatWindow)
+    participant API as API Route<br/>(/api/chat)
+    participant RAG as RAG Service<br/>(chain.ts)
+    participant EMB as Embedder<br/>(embedder.ts)
+    participant DB as pgvector<br/>(PostgreSQL)
+    participant LLM as LLM Provider<br/>(OpenAI-compatible)
+    participant LOG as Database<br/>(Prisma)
+
+    U->>FE: Ketik pesan & kirim
+    FE->>API: POST /api/chat {message, sessionId}
+    
+    Note over API: Rate Limit Check<br/>(20 req/menit/IP)
+    API->>LOG: Find/Create ChatSession
+    API->>LOG: INSERT ChatMessage (role: user)
+    
+    API->>RAG: streamRAGResponse(message, topK=5)
+    
+    RAG->>EMB: generateEmbedding(query)
+    alt Provider support embeddings
+        EMB->>LLM: openai.embeddings.create()
+        LLM-->>EMB: queryEmbedding (1536-dim)
+    else Fallback lokal
+        EMB->>EMB: generateLocalEmbedding()<br/>(feature hashing)
+    end
+    EMB-->>RAG: queryEmbedding
+    
+    RAG->>DB: SELECT chunks ORDER BY<br/>embedding <=> query LIMIT 5<br/>(cosine similarity)
+    DB-->>RAG: SimilarChunk[] + skor
+    
+    Note over RAG: Build Context<br/>(max 3000 tokens)<br/>+ Confidence Classification
+    
+    RAG->>RAG: Konstruksi System Prompt<br/>(berdasarkan mode widget)
+    
+    RAG->>LLM: openai.chat.completions.create({<br/>stream: true, messages, temperature: 0.3})
+    
+    loop Setiap chunk stream
+        LLM-->>RAG: ChatCompletionChunk
+        RAG-->>API: Stream text chunk
+        API-->>FE: Stream text chunk
+        FE-->>U: Tampilkan teks bertahap
+    end
+    
+    LLM-->>RAG: Stream selesai
+    
+    RAG-->>API: {stream, sources, noContext}
+    
+    API->>LOG: INSERT ChatMessage<br/>(role: assistant, content, sources)
+    
+    Note over API: Set Headers:<br/>X-Session-Id<br/>X-Sources (encoded JSON)
+    
+    API-->>FE: Streaming response + headers
+    FE-->>U: Tampilkan jawaban + source cards

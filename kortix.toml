@@ -1,0 +1,58 @@
+# Kortix project manifest for MimoNotes
+kortix_version = 1
+
+[project]
+name = "mimotes"
+description = "MimoNotes - AI-powered note management SaaS"
+
+[env]
+required = []
+optional = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"]
+
+[sandbox]
+default = "local"
+
+# Use a base Ubuntu image for sandbox
+[[sandbox.templates]]
+slug = "local"
+name = "Local Development"
+image = "ubuntu:22.04"
+cpu = 4
+memory = 8
+disk = 20
+
+[opencode]
+config_dir = ".kortix/opencode"
+
+[[triggers]]
+slug = "bug-report"
+name = "Weekly Bug Report"
+type = "cron"
+agent = "reporter"
+enabled = true
+cron = "0 10 * * 5"
+timezone = "Asia/Jakarta"
+prompt = """
+Generate MimoNotes Bug & Tech Debt Report.
+Read .ai/TECH_DEBT.md, check Docker logs, save report.
+"""
+
+[[triggers]]
+slug = "weekly-progress"
+name = "Weekly Progress Report"
+type = "cron"
+agent = "reporter"
+enabled = true
+cron = "0 2 * * 1"
+timezone = "Asia/Jakarta"
+prompt = """
+Generate MimoNotes Weekly Progress Report.
+Analyze git log, categorize commits, save report.
+"""
+
+# GitHub connector - credentials set via platform
+[[connectors]]
+slug = "github"
+name = "GitHub"
+provider = "http"
+base_url = "https://api.github.com"

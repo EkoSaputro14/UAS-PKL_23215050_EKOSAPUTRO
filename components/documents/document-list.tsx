@@ -120,7 +120,7 @@ export default function DocumentList() {
                   {doc.fileType.toUpperCase()}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {doc._count.chunks} chunks
+                  {doc._count.chunks} {doc._count.chunks === 1 ? "chunk" : "chunks"}
                 </span>
                 {doc.fileSize !== undefined && (
                   <span className="text-xs text-muted-foreground">

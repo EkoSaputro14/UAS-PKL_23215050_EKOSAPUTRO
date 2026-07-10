@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
 import {
   checkEndpointRateLimit,
   getRateLimitHeaders,
@@ -75,14 +74,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Audit: user registered (no workspace yet — use system)
-    logAudit({
-      workspaceId: "system",
-      actorId: newUser.id,
-      actorType: "user",
-      action: AUDIT_ACTIONS.AUTH_REGISTER,
-      metadata: { email, name: name || null },
-    });
 
     return Response.json({ success: true }, {
       headers: getRateLimitHeaders(rateLimitResult, RATE_LIMIT_CONFIGS.auth),
