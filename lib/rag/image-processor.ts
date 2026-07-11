@@ -253,8 +253,8 @@ export async function processImage(
   }
 
   // ---- Priority 2: PaddleOCR (if Vision didn't extract useful text) ----
-  // Try PaddleOCR when: no OCR text extracted, OR vision returned only metadata caption
-  const visionWasUseful = ocrText.length > 10 || (caption.length > 10 && !caption.toLowerCase().startsWith("image uploaded"));
+  // Try PaddleOCR when: no OCR text extracted, AND no meaningful caption/summary
+  const visionWasUseful = ocrText.length > 10 || (caption.length > 10 && !caption.toLowerCase().startsWith("image uploaded")) || (summary.length > 10 && !summary.toLowerCase().startsWith("image uploaded"));
   if (!visionWasUseful) {
     console.log(`[ImageProcessor] Trying PaddleOCR for: ${fileName}`);
     const paddleResult = await paddleOCR(imagePath);
