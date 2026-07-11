@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { getSettingWithFallback, getWorkspaceSetting } from "@/lib/settings";
-import { getWorkspaceContext, workspaceContextStore } from "@/lib/prisma";
+import { getWorkspaceContext } from "@/lib/prisma";
 
 export type AIProviderType = "openai" | "lmstudio" | "ollama" | "openrouter" | "custom" | "mimo" | "google";
 
@@ -152,7 +152,7 @@ let cachedClientKey = "";
 
 export async function getAIProvider(): Promise<OpenAI> {
   const config = await getProviderConfig();
-  const ctx = workspaceContextStore.getStore() || "NONE";
+  const ctx = "default";
   console.log(`[AI Provider] context=${ctx}, url=${config.baseURL}, model=${config.model}, key=${config.apiKey ? config.apiKey.substring(0, 12) + '...' : 'EMPTY'}`);
   const key = `${config.apiKey}|${config.baseURL}`;
 

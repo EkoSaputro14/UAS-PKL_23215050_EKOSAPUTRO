@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { AsyncLocalStorage } from "async_hooks";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -9,183 +8,50 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient();
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
-/**
- * Request-scoped workspace context via AsyncLocalStorage.
- * Each request gets its own isolated workspace ID — no cross-request leakage.
- */
-export const workspaceContextStore = new AsyncLocalStorage<string>();
+// ============================================================
+// Workspace stubs (workspace model removed)
+// All workspace functions are no-ops for backward compatibility.
+// ============================================================
 
-/**
- * Set the workspace context for Row Level Security (RLS).
- *
- * This MUST be called before any database query in authenticated API routes.
- * RLS policies use `current_setting('app.current_workspace_id')` to filter rows.
- *
- * Usage:
- *   const session = await auth();
- *   const workspaceId = await resolveWorkspaceId(session.user.id);
- *   await setWorkspaceContext(workspaceId);
- *   // All subsequent queries are now workspace-scoped
- *
- * @param workspaceId - The workspace ID for tenant isolation
- */
-export async function setWorkspaceContext(workspaceId: string): Promise<void> {
-  // Store in AsyncLocalStorage (request-scoped, connection-pool safe)
-  workspaceContextStore.enterWith(workspaceId);
-  // Also set in DB for RLS policies on the current connection
-  await prisma.$executeRaw`SELECT set_config('app.current_workspace_id', ${workspaceId}, false)`;
+export async function setWorkspaceContext(_workspaceId: string): Promise<void> {
+  // No-op — workspace model removed
 }
 
-/**
- * Get the current workspace context.
- * Returns the workspace_id set by setWorkspaceContext, or null if not set.
- */
 export async function getWorkspaceContext(): Promise<string | null> {
-  // First try AsyncLocalStorage (fast, connection-pool safe, request-scoped)
-  const ctx = workspaceContextStore.getStore();
-  if (ctx) return ctx;
-  // Fallback to DB (for cases where setWorkspaceContext was called before this module loaded)
-  const result = await prisma.$queryRaw<Array<{ setting_value: string | null }>>`
-    SELECT current_setting('app.current_workspace_id', true) as setting_value
-  `;
-  return result[0]?.setting_value ?? null;
+  return null;
 }
 
-/**
- * Resolve workspace ID for a user.
- * Returns the user's selected workspace, or their owner workspace, or creates one if missing.
- *
- * Priority:
- * 1. If selectedWorkspaceId is provided, verify membership and return it
- * 2. Fall back to the user's owner workspace
- * 3. Create a default workspace if none exists
- *
- * @param userId - The authenticated user's ID
- * @param selectedWorkspaceId - Optional workspace ID from JWT/session (user's selection)
- * @returns The workspace ID
- */
-export async function resolveWorkspaceId(userId: string, selectedWorkspaceId?: string | null): Promise<string> {
-  // Use a single transaction to guarantee set_config + query use the SAME connection.
-  // Without this, Prisma's connection pool may assign different connections, causing
-  // get_user_workspace_ids to return empty (RLS can't see app.current_user_id).
-  return prisma.$transaction(async (tx) => {
-    // Set user context on THIS connection
-    await tx.$executeRaw`SELECT set_config('app.current_user_id', ${userId}, false)`;
-
-    // If user selected a workspace, verify membership and use it
-    if (selectedWorkspaceId) {
-      // WorkspaceMember model removed — use raw query for membership check
-      const membership = await tx.$queryRaw<Array<{ workspace_id: string }>>`
-        SELECT workspace_id FROM workspace_members
-        WHERE user_id = ${userId} AND workspace_id = ${selectedWorkspaceId}
-        LIMIT 1
-      `;
-      if (membership.length > 0) {
-        return membership[0].workspace_id;
-      }
-    }
-
-    // Query workspace memberships — SECURITY DEFINER function bypasses RLS
-    const memberships = await tx.$queryRaw<Array<{ workspace_id: string; role: string }>>`
-      SELECT workspace_id, role FROM get_user_workspace_ids(${userId})
-    `;
-
-    // Find owner workspace
-    const ownerMembership = memberships.find((m) => m.role === "owner");
-    if (ownerMembership) {
-      return ownerMembership.workspace_id;
-    }
-
-    // If any membership exists, use the first one
-    if (memberships.length > 0) {
-      return memberships[0].workspace_id;
-    }
-
-    // No workspace found — create one using SECURITY DEFINER function
-    const user = await tx.user.findUnique({ where: { id: userId } });
-    const workspaceName = user?.name ? `${user.name}'s Workspace` : "Workspace";
-    const slug = `ws-${(user?.name || "user").toLowerCase().replace(/\s+/g, "-")}-${userId.substring(0, 8)}`;
-
-    const result = await tx.$queryRaw<Array<{ create_user_workspace: string }>>`
-      SELECT create_user_workspace(${userId}, ${workspaceName}, ${slug}) as create_user_workspace
-    `;
-
-    return result[0].create_user_workspace;
-  });
+export async function resolveWorkspaceId(_userId: string, _selectedWorkspaceId?: string | null): Promise<string> {
+  return "default";
 }
 
-/**
- * Get all workspaces a user is a member of.
- *
- * @param userId - The user's ID
- * @returns Array of workspace IDs and roles
- */
-export async function getUserWorkspaces(userId: string): Promise<Array<{ workspaceId: string; role: string }>> {
-  return prisma.$queryRaw<Array<{ workspace_id: string; role: string }>>`
-    SELECT workspace_id, role FROM workspace_members
-    WHERE user_id = ${userId}
-  `.then(rows => rows.map(r => ({ workspaceId: r.workspace_id, role: r.role })));
+export async function getUserWorkspaces(_userId: string): Promise<Array<{ workspaceId: string; role: string }>> {
+  return [];
 }
 
-/**
- * Get all workspaces a user is a member of, with details for the workspace switcher.
- *
- * @param userId - The user's ID
- * @returns Array of workspace details with role info
- */
-export async function getUserWorkspacesWithDetails(userId: string): Promise<Array<{
-  id: string;
-  name: string;
-  slug: string;
-  role: string;
-  memberCount: number;
-}>> {
-  // Use raw queries since WorkspaceMember/Workspace models are removed from Prisma schema
-  const memberships = await prisma.$queryRaw<Array<{
-    workspace_id: string; role: string; created_at: Date;
-  }>>`
-    SELECT workspace_id, role, created_at FROM workspace_members
-    WHERE user_id = ${userId}
-    ORDER BY created_at ASC
-  `;
+export async function getWorkspaceMembers(_workspaceId: string): Promise<Array<{ userId: string; role: string }>> {
+  return [];
+}
 
-  const results: Array<{ id: string; name: string; slug: string; role: string; memberCount: number }> = [];
+export async function isWorkspaceMember(_userId: string, _workspaceId: string): Promise<boolean> {
+  return true;
+}
 
-  for (const m of memberships) {
-    const workspace = await prisma.$queryRaw<Array<{ id: string; name: string; slug: string; member_count: bigint }>>`
-      SELECT id, name, slug, (SELECT COUNT(*) FROM workspace_members WHERE workspace_id = w.id)::bigint as member_count
-      FROM workspaces w WHERE id = ${m.workspace_id}
-    `;
-    if (workspace.length > 0 && workspace[0]) {
-      const ws = workspace[0];
-      results.push({
-        id: ws.id,
-        name: ws.name,
-        slug: ws.slug,
-        role: m.role,
-        memberCount: Number(ws.member_count),
-      });
-    }
+export async function getWorkspaceBySlug(_slug: string): Promise<{ id: string; name: string } | null> {
+  return null;
+}
+
+export async function createWorkspace(_userId: string, _name: string): Promise<string> {
+  return "default";
+}
+
+// Keep health check for Prisma
+export async function checkPrismaHealth(): Promise<{ status: string; latencyMs: number }> {
+  const start = Date.now();
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    return { status: "healthy", latencyMs: Date.now() - start };
+  } catch {
+    return { status: "unhealthy", latencyMs: Date.now() - start };
   }
-
-  return results;
-}
-
-// ============================================================
-// Legacy API — deprecated, kept for backward compatibility
-// ============================================================
-
-/**
- * @deprecated Use setWorkspaceContext instead. Maps userId to workspace context.
- */
-export async function setTenantContext(userId: string): Promise<void> {
-  const workspaceId = await resolveWorkspaceId(userId);
-  await setWorkspaceContext(workspaceId);
-}
-
-/**
- * @deprecated Use getWorkspaceContext instead.
- */
-export async function getTenantContext(): Promise<string | null> {
-  return getWorkspaceContext();
 }
