@@ -169,28 +169,6 @@ export default function CommandPalette({
 
         <CommandSeparator />
 
-        {/* Workspace */}
-        <CommandGroup heading="Workspace">
-          <CommandItem onSelect={() => navigate("/settings/workspace")}>
-            <Building2 className="size-4" />
-            Workspace Settings
-          </CommandItem>
-          <CommandItem onSelect={() => navigate("/settings/usage")}>
-            <BarChart3 className="size-4" />
-            Usage
-          </CommandItem>
-          <CommandItem onSelect={() => navigate("/settings/billing")}>
-            <CreditCard className="size-4" />
-            Billing
-          </CommandItem>
-          <CommandItem onSelect={() => navigate("/settings/audit")}>
-            <Users className="size-4" />
-            Audit Log
-          </CommandItem>
-        </CommandGroup>
-
-        <CommandSeparator />
-
         {/* Settings & Integrations */}
         <CommandGroup heading="Settings">
           <CommandItem onSelect={() => navigate("/settings/account")}>

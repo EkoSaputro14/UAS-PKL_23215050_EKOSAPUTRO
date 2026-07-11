@@ -28,9 +28,6 @@ const protectedApiRoutes = [
   "/api/knowledge",
   "/api/ai",
   "/api/chat/sessions",
-  "/api/workspace",
-  "/api/workspace/subscription",
-  "/api/workspace/billing",
 ];
 
 // Routes that are always public

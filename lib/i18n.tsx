@@ -26,19 +26,10 @@ const translations: Record<Lang, Record<string, string>> = {
     "settings.back": "Kembali ke Dashboard",
     "settings.account": "Akun",
     "settings.ai": "Pengaturan AI",
-    "settings.workspace": "Workspace",
     "settings.security": "Keamanan",
     "settings.notifications": "Notifikasi",
     "settings.appearance": "Tampilan",
-    "settings.api_keys": "API Keys",
-    "settings.mcp": "MCP",
-    "settings.widget": "Widget",
-    "settings.leads": "Leads",
     "settings.whatsapp": "WhatsApp",
-    "settings.baileys": "WhatsApp Baileys",
-    "settings.billing": "Billing",
-    "settings.invoices": "Invoice",
-    "settings.audit": "Audit Logs",
     "settings.language": "Bahasa",
     
     // Common
@@ -63,15 +54,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "chat.send": "Kirim",
     "chat.placeholder": "Ketik pesan...",
     
-    // Billing
-    "billing.plan": "Paket",
-    "billing.free": "Gratis",
-    "billing.pro": "Pro",
-    "billing.enterprise": "Enterprise",
-    "billing.upgrade": "Upgrade",
-    "billing.manage": "Kelola",
-    "billing.current_plan": "Paket Saat Ini",
-    "billing.status": "Status",
+
     
     // Status
     "status.ready": "Siap",
@@ -109,19 +92,10 @@ const translations: Record<Lang, Record<string, string>> = {
     "settings.back": "Back to Dashboard",
     "settings.account": "Account",
     "settings.ai": "AI Settings",
-    "settings.workspace": "Workspace",
     "settings.security": "Security",
     "settings.notifications": "Notifications",
     "settings.appearance": "Appearance",
-    "settings.api_keys": "API Keys",
-    "settings.mcp": "MCP",
-    "settings.widget": "Widget",
-    "settings.leads": "Leads",
     "settings.whatsapp": "WhatsApp",
-    "settings.baileys": "WhatsApp Baileys",
-    "settings.billing": "Billing",
-    "settings.invoices": "Invoice",
-    "settings.audit": "Audit Logs",
     "settings.language": "Language",
     
     // Common
@@ -146,15 +120,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "chat.send": "Send",
     "chat.placeholder": "Type a message...",
     
-    // Billing
-    "billing.plan": "Plan",
-    "billing.free": "Free",
-    "billing.pro": "Pro",
-    "billing.enterprise": "Enterprise",
-    "billing.upgrade": "Upgrade",
-    "billing.manage": "Manage",
-    "billing.current_plan": "Current Plan",
-    "billing.status": "Status",
+
     
     // Status
     "status.ready": "Ready",

@@ -47,12 +47,6 @@ const NAV_ITEMS: NavItem[] = [
     icon: <Brain className="h-4 w-4" />,
   },
   {
-    labelKey: "settings.workspace",
-    fallback: "Workspace",
-    href: "/settings/workspace",
-    icon: <LayoutGrid className="h-4 w-4" />,
-  },
-  {
     labelKey: "settings.security",
     fallback: "Keamanan",
     href: "/settings/security",
@@ -71,64 +65,16 @@ const NAV_ITEMS: NavItem[] = [
     icon: <Sun className="h-4 w-4" />,
   },
   {
-    labelKey: "settings.api_keys",
-    fallback: "API Keys",
-    href: "/settings/api-keys",
-    icon: <Key className="h-4 w-4" />,
-  },
-  {
-    labelKey: "settings.mcp",
-    fallback: "MCP",
-    href: "/settings/mcp",
-    icon: <Puzzle className="h-4 w-4" />,
-  },
-  {
-    labelKey: "settings.widget",
-    fallback: "Widget",
-    href: "/settings/widget",
-    icon: <Settings className="h-4 w-4" />,
-  },
-  {
-    labelKey: "settings.leads",
-    fallback: "Leads",
-    href: "/settings/leads",
-    icon: <Users className="h-4 w-4" />,
-  },
-  {
     labelKey: "settings.whatsapp",
     fallback: "WhatsApp",
     href: "/settings/whatsapp",
     icon: <MessageCircle className="h-4 w-4" />,
   },
   {
-    labelKey: "settings.baileys",
-    fallback: "WhatsApp Baileys",
-    href: "/settings/baileys",
-    icon: <Phone className="h-4 w-4" />,
-  },
-  {
-    labelKey: "settings.billing",
-    fallback: "Billing",
-    href: "/settings/billing",
-    icon: <CreditCard className="h-4 w-4" />,
-  },
-  {
-    labelKey: "settings.invoices",
-    fallback: "Invoice",
-    href: "/settings/invoices",
-    icon: <FileText className="h-4 w-4" />,
-  },
-  {
     labelKey: "settings.language",
     fallback: "Bahasa",
     href: "/settings/language",
     icon: <Globe className="h-4 w-4" />,
-  },
-  {
-    labelKey: "settings.audit",
-    fallback: "Audit Logs",
-    href: "/settings/audit",
-    icon: <Shield className="h-4 w-4" />,
   },
 ];
 
