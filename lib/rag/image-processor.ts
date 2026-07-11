@@ -383,7 +383,6 @@ export function generateImageChunks(
       effectiveCaption,
       summary ? `\n\nSummary: ${summary}` : "",
       `\n\nOCR Text:\n${ocrText}`,
-      `\n\nOCR Text:\n${ocrText}`,
     ]
       .filter(Boolean)
       .join("");
