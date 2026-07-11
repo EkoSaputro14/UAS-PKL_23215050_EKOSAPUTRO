@@ -13,6 +13,25 @@
 import { readFile } from "fs/promises";
 import { getVisionProvider } from "./vision-provider";
 
+/**
+ * Check if a caption/summary is just metadata (not meaningful content).
+ * Examples of metadata captions: "Image uploaded on...", "Image (1920x1080 pixels)..."
+ */
+function isMetadataCaption(text: string): boolean {
+  const lower = text.toLowerCase();
+  return (
+    lower.startsWith("image uploaded") ||
+    lower.startsWith("uploaded on") ||
+    lower.startsWith("file:") ||
+    lower.startsWith("photo") ||
+    lower.startsWith("image (") || // "Image (1920x1080 pixels)"
+    lower.includes("no text could be extracted") ||
+    lower.includes("pixels)") ||
+    /^\d{4}[-/]\d{2}[-/]\d{2}/.test(text) || // starts with date
+    /^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/.test(text) // starts with date
+  );
+}
+
 // ============================================================
 // Types
 // ============================================================
@@ -254,7 +273,7 @@ export async function processImage(
 
   // ---- Priority 2: PaddleOCR (if Vision didn't extract useful text) ----
   // Try PaddleOCR when: no OCR text extracted, AND no meaningful caption/summary
-  const visionWasUseful = ocrText.length > 10 || (caption.length > 10 && !caption.toLowerCase().startsWith("image uploaded")) || (summary.length > 10 && !summary.toLowerCase().startsWith("image uploaded"));
+  const visionWasUseful = ocrText.length > 10 || (caption.length > 10 && !isMetadataCaption(caption)) || (summary.length > 10 && !isMetadataCaption(summary));
   if (!visionWasUseful) {
     console.log(`[ImageProcessor] Trying PaddleOCR for: ${fileName}`);
     const paddleResult = await paddleOCR(imagePath);
@@ -342,19 +361,6 @@ export function generateImageChunks(
   if (metadata.extraction_method === "rejected") {
     return [];
   }
-
-  // Validate caption — reject metadata-only captions
-  const isMetadataCaption = (text: string): boolean => {
-    const lower = text.toLowerCase();
-    return (
-      lower.startsWith("image uploaded") ||
-      lower.startsWith("uploaded on") ||
-      lower.startsWith("file:") ||
-      lower.startsWith("photo") ||
-      /^\d{4}[-/]\d{2}[-/]\d{2}/.test(text) || // starts with date
-      /^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/.test(text) // starts with date
-    );
-  };
 
   // If caption is just metadata, try to use summary instead
   const effectiveCaption = isMetadataCaption(caption)
