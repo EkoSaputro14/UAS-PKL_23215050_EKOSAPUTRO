@@ -5,7 +5,6 @@ import FormatMarquee from "@/components/landing/format-marquee";
 import ProductShowcase from "@/components/landing/product-showcase";
 import HowItWorks from "@/components/landing/how-it-works";
 import FeatureHighlights from "@/components/landing/feature-highlights";
-import PricingSection from "@/components/landing/pricing-section";
 import FaqSection from "@/components/landing/faq-section";
 import FinalCta from "@/components/landing/final-cta";
 import LandingFooter from "@/components/landing/footer";
@@ -36,10 +35,6 @@ export default function HomePage() {
 
         <ScrollFadeIn delay={0}>
           <FeatureHighlights />
-        </ScrollFadeIn>
-
-        <ScrollFadeIn delay={0}>
-          <PricingSection />
         </ScrollFadeIn>
 
         <ScrollFadeIn delay={0.12}>
