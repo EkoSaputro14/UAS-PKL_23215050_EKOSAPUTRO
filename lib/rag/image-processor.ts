@@ -341,28 +341,46 @@ export function generateImageChunks(
     return [];
   }
 
+  // Validate caption — reject metadata-only captions
+  const isMetadataCaption = (text: string): boolean => {
+    const lower = text.toLowerCase();
+    return (
+      lower.startsWith("image uploaded") ||
+      lower.startsWith("uploaded on") ||
+      lower.startsWith("file:") ||
+      lower.startsWith("photo") ||
+      /^\d{4}[-/]\d{2}[-/]\d{2}/.test(text) || // starts with date
+      /^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/.test(text) // starts with date
+    );
+  };
+
+  // If caption is just metadata, try to use summary instead
+  const effectiveCaption = isMetadataCaption(caption)
+    ? (summary && !isMetadataCaption(summary) ? summary : "")
+    : caption;
+
   const hasOCR = ocrText.length > 10;
-  const hasCaption = caption.length > 0;
+  const hasCaption = effectiveCaption.length > 0;
 
   // Metadata fallback chunk (no text or caption extracted)
   if (metadata.extraction_method === "metadata" && !hasOCR && !hasCaption) {
     chunks.push({
-      content: caption || summary || "Image uploaded without extracted text",
+      content: "Image uploaded without extracted text",
       chunk_type: "image_caption",
       ocr_text: "",
-      caption: caption || "Image metadata",
+      caption: "Image metadata",
       image_summary: summary,
       image_url: imageUrl,
       metadata,
     });
     return chunks;
   }
-
   // Combined chunk (best quality — has both OCR and caption)
   if (hasOCR && hasCaption) {
     const combinedContent = [
-      caption,
+      effectiveCaption,
       summary ? `\n\nSummary: ${summary}` : "",
+      `\n\nOCR Text:\n${ocrText}`,
       `\n\nOCR Text:\n${ocrText}`,
     ]
       .filter(Boolean)
@@ -393,10 +411,10 @@ export function generateImageChunks(
   // Caption-only chunk (has caption from vision but no OCR text)
   else if (hasCaption) {
     chunks.push({
-      content: caption,
+      content: `Caption: ${effectiveCaption}${summary ? `\n\nSummary: ${summary}` : ""}`,
       chunk_type: "image_caption",
       ocr_text: "",
-      caption,
+      caption: effectiveCaption,
       image_summary: summary,
       image_url: imageUrl,
       metadata,
