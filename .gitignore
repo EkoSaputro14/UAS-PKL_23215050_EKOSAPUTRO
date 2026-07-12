@@ -51,3 +51,4 @@ prod_*.png
 baileys-service/node_modules/
 docs-obsidian/
 .worktrees/
+cookies.txt
