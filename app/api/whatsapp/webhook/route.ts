@@ -3,7 +3,7 @@ import { verifyWebhookSignature, parseWebhookPayloads } from "@/lib/whatsapp/web
 import { processIncomingMessage } from "@/lib/whatsapp/processor";
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mimotes_whatsapp_verify";
-const APP_SECRET = process.env.WHATSAPP_APP_SECRET || "";
+const APP_SECRET = process.env.WHATSAPP_APP_SECRET;
 
 /**
  * GET /api/whatsapp/webhook
@@ -29,16 +29,23 @@ export async function GET(request: NextRequest) {
  * Incoming message handler.
  *
  * Security:
- * - HMAC-SHA256 signature verification
+ * - HMAC-SHA256 signature verification (REQUIRED)
  * - Raw body preserved for signature check
+ * - APP_SECRET must be configured
  */
 export async function POST(request: NextRequest) {
+  // Require APP_SECRET to be configured
+  if (!APP_SECRET) {
+    console.error("[WhatsApp] WHATSAPP_APP_SECRET not configured — rejecting webhook");
+    return new Response("Server misconfiguration", { status: 500 });
+  }
+
   // Get raw body for signature verification
   const rawBody = await request.text();
 
-  // Verify signature
+  // Verify signature (REQUIRED)
   const signature = request.headers.get("x-hub-signature-256");
-  if (APP_SECRET && !verifyWebhookSignature(rawBody, signature, APP_SECRET)) {
+  if (!verifyWebhookSignature(rawBody, signature, APP_SECRET)) {
     console.warn("[WhatsApp] Invalid webhook signature");
     return new Response("Invalid signature", { status: 401 });
   }

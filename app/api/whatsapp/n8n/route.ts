@@ -1,46 +1,58 @@
 import { NextRequest } from "next/server";
 import { generateRAGResponse } from "@/lib/rag/chain";
-import { prisma, setWorkspaceContext, resolveWorkspaceId } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 /**
  * POST /api/whatsapp/n8n
- * 
+ *
  * API endpoint untuk n8n workflow.
  * Menerima pesan dari n8n, proses dengan AI, kirim response balik.
- * 
+ *
+ * Security:
+ * - Requires authentication (session cookie or API key)
+ * - No workspace injection — uses authenticated user's context
+ *
  * Body: {
  *   message: string,
  *   phone: string,
- *   sessionId?: string,
- *   workspaceId: string
+ *   sessionId?: string
  * }
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { message, phone, sessionId, workspaceId } = body;
-
-    if (!message || !phone || !workspaceId) {
+    // Require authentication
+    const session = await auth();
+    if (!session?.user?.id) {
       return Response.json(
-        { error: "message, phone, and workspaceId are required" },
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.user.id;
+    const body = await request.json();
+    const { message, phone, sessionId } = body;
+
+    if (!message || !phone) {
+      return Response.json(
+        { error: "message and phone are required" },
         { status: 400 }
       );
     }
 
-    // Set workspace context for RLS
-    await setWorkspaceContext(workspaceId);
-
-    // Get or create session
-    let session;
+    // Get or create session — tied to authenticated user
+    let sessionRecord;
     if (sessionId) {
-      session = await prisma.chatSession.findUnique({
-        where: { id: sessionId },
+      sessionRecord = await prisma.chatSession.findFirst({
+        where: { id: sessionId, userId },
       });
     }
 
-    if (!session) {
-      session = await prisma.chatSession.create({
+    if (!sessionRecord) {
+      sessionRecord = await prisma.chatSession.create({
         data: {
+          userId,
           title: `WhatsApp: ${phone}`,
         },
       });
@@ -49,32 +61,34 @@ export async function POST(request: NextRequest) {
     // Save user message
     await prisma.chatMessage.create({
       data: {
-        sessionId: session.id,
+        sessionId: sessionRecord.id,
         role: "user",
         content: message,
       },
     });
 
     // Generate RAG response
-    const ragResult = await generateRAGResponse(message, 5, workspaceId);
+    const ragResult = await generateRAGResponse(message, 5);
     const response = ragResult.answer || "Maaf, saya tidak dapat menjawab pertanyaan Anda saat ini.";
 
     // Save assistant message
     await prisma.chatMessage.create({
       data: {
-        sessionId: session.id,
+        sessionId: sessionRecord.id,
         role: "assistant",
         content: response,
+        sources: ragResult.sources ? JSON.parse(JSON.stringify(ragResult.sources)) : null,
       },
     });
 
     return Response.json({
       success: true,
       response,
-      sessionId: session.id,
+      sessionId: sessionRecord.id,
+      sources: ragResult.sources || [],
     });
   } catch (error) {
-    console.error("[n8n] API error:", error);
+    console.error("[WhatsApp N8N] Error:", error);
     return Response.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -84,12 +98,15 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/whatsapp/n8n
- * Health check endpoint
+ * Health check for n8n integration.
  */
 export async function GET() {
   return Response.json({
     status: "ok",
-    service: "mimotes-n8n-bridge",
-    timestamp: new Date().toISOString(),
+    endpoint: "/api/whatsapp/n8n",
+    method: "POST",
+    requiredFields: ["message", "phone"],
+    optionalFields: ["sessionId"],
+    note: "Authentication required. Use session cookie or API key.",
   });
 }
