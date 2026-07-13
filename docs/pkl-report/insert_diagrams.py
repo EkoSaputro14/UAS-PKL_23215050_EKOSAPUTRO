@@ -1,140 +1,243 @@
-from docx import Document
-from docx.shared import Pt, Cm
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
+#!/usr/bin/env python3
+"""
+Insert diagrams from v14 into v15 template.
+Replace old figure captions and insert images.
+"""
 import os
+from docx import Document
+from docx.oxml.ns import qn
+from docx.shared import Inches, Cm, Pt
+from lxml import etree
 
-doc = Document(r'C:\Users\SMANSA\mimotes\docs\pkl-report\LAPORAN_PKL_Eko_Saputro_23215050.docx')
+INPUT = 'LAPORAN_PKL_v15_Template.docx'
+OUTPUT = 'LAPORAN_PKL_v15_Template.docx'
+DIAGRAMS_DIR = 'diagrams'
 
-diagrams = {
-    '4.2.1 Use Case Diagram': ('usecase.png', 'Gambar 4.2 Use Case Diagram Sistem Mimotes AI'),
-    '4.2.2 Entity Relationship Diagram': ('erd.png', 'Gambar 4.5 Entity Relationship Diagram'),
-    '4.2.3 Arsitektur RAG Pipeline': ('rag-pipeline.png', 'Gambar 4.6 Arsitektur RAG Pipeline'),
-    '4.2.4 Arsitektur CRM Pipeline': ('crm-pipeline.png', 'Gambar 4.7 Arsitektur CRM Pipeline'),
-}
+# Mapping: old caption keyword → new caption + image file
+# We'll find captions by their position in BAB IV content
+DIAGRAM_MAP = [
+    # (search_text_in_caption, new_caption, image_file)
+    ("Use Case", "Gambar 4.2 Use Case Diagram Sistem Mimotes AI", "usecase.png"),
+    ("Activity Diagram Proses Diag", "Gambar 4.3 Activity Diagram Upload Dokumen", "activity-upload.png"),
+    ("Activity Diagram", "Gambar 4.4 Activity Diagram Proses Chat RAG", "activity-chat.png"),
+    ("Sequence diagram Proses", "Gambar 4.5 Sequence Diagram Chat RAG", "sequence-chat-rag.png"),
+    ("Class Diagram", "Gambar 4.6 ERD Domain Identity & Workspace", "erd-a-identity.png"),
+    ("Pohon Keputusan", "Gambar 4.7 ERD Domain RAG & Knowledge Base", "erd-b-rag.png"),
+    ("Arsitektur Sistem", "Gambar 4.8 ERD Domain Chat & CRM", "erd-c-chat-crm.png"),
+    ("Flowchart Proses", "Gambar 4.9 ERD Domain Billing & Configuration", "erd-d-billing.png"),
+    ("Halaman Beranda", "Gambar 4.10 ERD Ringkasan — Seluruh Relasi", "erd-summary.png"),
+    ("Halaman Tentang", "Gambar 4.11 Arsitektur Sistem Mimotes AI", "architecture.png"),
+    ("Halaman Cara Kerja", "Gambar 4.12 Arsitektur RAG Pipeline", "rag-pipeline.png"),
+    ("Halaman Deteksi", "Gambar 4.13 Arsitektur CRM Pipeline", "crm-pipeline.png"),
+    ("Halaman Panel Admin", "Gambar 4.14 Halaman Login", None),  # screenshot - skip
+    ("Implementasi database", "Gambar 4.15 Dashboard Admin", None),
+    ("Input Keyakinan", "Gambar 4.16 Upload Dokumen", None),
+    ("Hasil Diag", "Gambar 4.17 Daftar Dokumen", None),
+]
 
+print("📄 Loading v15...")
+doc = Document(INPUT)
 body = doc.element.body
 
-# Build list of (paragraph_index, text) for all paragraphs
-para_list = list(body.iterchildren(qn('w:p')))
+# ===== STEP 1: Find all figure captions in BAB IV =====
+print("\n📝 Step 1: Finding figure captions...")
 
-for section_title, (filename, caption) in diagrams.items():
-    # Find the paragraph containing the section title
-    target_idx = None
-    for i, p_elem in enumerate(para_list):
-        text = ''.join(node.text for node in p_elem.iter() if node.text)
-        if section_title in text:
-            target_idx = i
+# Find where BAB IV content starts and ends
+bab4_start = None
+bab5_start = None
+for i, para in enumerate(doc.paragraphs):
+    text = para.text.strip()
+    style = para.style.name if para.style else ''
+    if style == 'Heading 1' and 'BAB IV' in text:
+        bab4_start = i
+    elif style == 'Heading 1' and 'BAB V' in text:
+        bab5_start = i
+        break
+
+print(f"  BAB IV: paragraphs {bab4_start}-{bab5_start}")
+
+# Find figure captions in BAB IV
+figure_positions = []
+if bab4_start is not None and bab5_start is not None:
+    for i in range(bab4_start, bab5_start):
+        para = doc.paragraphs[i]
+        text = para.text.strip()
+        if text.startswith('Gambar 4.'):
+            figure_positions.append((i, text, para))
+
+print(f"  Found {len(figure_positions)} figure captions in BAB IV")
+for idx, text, _ in figure_positions:
+    print(f"    [{idx:3d}] {text[:60]}")
+
+# ===== STEP 2: Match and replace captions + insert images =====
+print("\n📝 Step 2: Replacing captions and inserting images...")
+
+replaced = 0
+for caption_idx, (para_idx, old_text, para) in enumerate(figure_positions):
+    # Find matching diagram
+    matched = False
+    for search_text, new_caption, img_file in DIAGRAM_MAP:
+        if search_text.lower() in old_text.lower():
+            # Replace caption text
+            for run in para.runs:
+                run.text = ''
+            if para.runs:
+                para.runs[0].text = new_caption
+            elif new_text:
+                para.add_run(new_caption)
+            
+            # Insert image if available
+            if img_file:
+                img_path = os.path.join(DIAGRAMS_DIR, img_file)
+                if os.path.exists(img_path):
+                    # Create a new paragraph for the image (before the caption)
+                    # We need to insert it into the XML body
+                    para_elem = para._element
+                    parent = para_elem.getparent()
+                    
+                    # Find position of this paragraph in parent
+                    pos = list(parent).index(para_elem)
+                    
+                    # Create image paragraph
+                    img_para = etree.SubElement(etree.Element('dummy'), qn('w:p'))
+                    img_pPr = etree.SubElement(img_para, qn('w:pPr'))
+                    img_jc = etree.SubElement(img_pPr, qn('w:jc'))
+                    img_jc.set(qn('w:val'), 'center')
+                    
+                    # Add drawing element with image
+                    img_r = etree.SubElement(img_para, qn('w:r'))
+                    drawing = etree.SubElement(img_r, qn('w:drawing'))
+                    
+                    # Create inline image
+                    inline = etree.SubElement(drawing, qn('wp:inline'))
+                    inline.set(qn('distT'), '0')
+                    inline.set(qn('distB'), '0')
+                    inline.set(qn('distL'), '0')
+                    inline.set(qn('distR'), '0')
+                    
+                    # extent (size)
+                    extent = etree.SubElement(inline, qn('wp:extent'))
+                    # Width: 14cm = ~5.5 inches = ~5.5*914400 EMUs
+                    cx = int(14.0 / 2.54 * 914400)  # 14cm in EMUs
+                    cy = int(cx * 0.6)  # rough aspect ratio
+                    extent.set(qn('cx'), str(cx))
+                    extent.set(qn('cy'), str(cy))
+                    
+                    # docPr
+                    docPr = etree.SubElement(inline, qn('wp:docPr'))
+                    docPr.set(qn('id'), str(replaced + 1))
+                    docPr.set(qn('name'), f'Image {replaced + 1}')
+                    
+                    # Graphic
+                    graphic = etree.SubElement(inline, qn('a:graphic'))
+                    graphic.set(qn('xmlns:a'), 'http://schemas.openxmlformats.org/drawingml/2006/main')
+                    graphicFrame = etree.SubElement(graphic, qn('a:graphicFrame'))
+                    graphicFrame.set(qn('macro'), '')
+                    
+                    xfrm = etree.SubElement(graphicFrame, qn('a:xfrm'))
+                    off = etree.SubElement(xfrm, qn('a:off'))
+                    off.set(qn('x'), '0')
+                    off.set(qn('y'), '0')
+                    ext = etree.SubElement(xfrm, qn('a:ext'))
+                    ext.set(qn('cx'), '0')
+                    ext.set(qn('cy'), '0')
+                    
+                    prstGeom = etree.SubElement(graphicFrame, qn('a:prstGeom'))
+                    prstGeom.set(qn('prst'), 'rect')
+                    avLst = etree.SubElement(prstGeom, qn('a:avLst'))
+                    
+                    # pic:nvPicPr (picture non-visual properties)
+                    # We need to use the pic namespace
+                    pic_ns = 'http://schemas.openxmlformats.org/drawingml/2006/picture'
+                    
+                    # For simplicity, let's use a different approach:
+                    # Add the image as a relationship and reference it
+                    # This is complex with raw XML, so let's use python-docx's add_picture method
+                    # But that adds to the end of the document...
+                    
+                    # Actually, the simplest approach is to use python-docx's
+                    # paragraph._element.addnext() or addprevious()
+                    
+                    # Let's just note the position and use python-docx later
+                    pass
+            
+            replaced += 1
+            matched = True
+            print(f"  ✅ [{para_idx}] {old_text[:40]} → {new_caption[:40]}")
             break
     
-    if target_idx is None:
-        print(f'NOT FOUND: {section_title}')
-        continue
-    
-    # We need to insert AFTER this paragraph
-    # Find the actual XML element
-    target_p = para_list[target_idx]
-    
-    # Get the parent and find position
-    parent = target_p.getparent()
-    children = list(parent)
-    pos = children.index(target_p)
-    
-    img_path = os.path.join(r'C:\Users\SMANSA\mimotes\docs\pkl-report\diagrams', filename)
-    
-    # Create new paragraph for image
-    new_p = OxmlElement('w:p')
-    new_pPr = OxmlElement('w:pPr')
-    new_jc = OxmlElement('w:jc')
-    new_jc.set(qn('w:val'), 'center')
-    new_pPr.append(new_jc)
-    new_p.append(new_pPr)
-    
-    # Add run with image
-    new_r = OxmlElement('w:r')
-    new_rPr = OxmlElement('w:rPr')
-    new_r.append(new_rPr)
-    
-    if os.path.exists(img_path):
-        # Add image
-        from docx.image.image import Image
-        img = Image(img_path)
-        
-        # Add inline element
-       Drawing = OxmlElement('w:drawing')
-        inline = OxmlElement('wp:inline')
-        extent = OxmlElement('wp:extent')
-        extent.set(qn('cx'), str(int(14 * 914400 / 2.54)))  # 14cm in EMU
-        extent.set(qn('cy'), str(int(10 * 914400 / 2.54)))  # 10cm in EMU
-        inline.append(extent)
-        
-        docPr = OxmlElement('wp:docPr')
-        docPr.set(qn('id'), str(target_idx * 10))
-        docPr.set(qn('name'), filename)
-        inline.append(docPr)
-        
-        graphic = OxmlElement('a:graphic')
-        graphicData = OxmlElement('a:graphicData')
-        pic = OxmlElement('pic:pic')
-        
-        picPr = OxmlElement('pic:picPr')
-        pic.append(picPr)
-        
-        blipFill = OxmlElement('pic:blipFill')
-        blip = OxmlElement('a:blip')
-        blip.set(qn('r:embed'), 'rId' + str(target_idx * 10 + 100))
-        blipFill.append(blip)
-        pic.append(blipFill)
-        
-        spPr = OxmlElement('pic:spPr')
-        xfrm = OxmlElement('a:xfrm')
-        off = OxmlElement('a:off')
-        off.set(qn('x'), '0')
-        off.set(qn('y'), '0')
-        xfrm.append(off)
-        ext = OxmlElement('a:ext')
-        ext.set(qn('cx'), str(int(14 * 914400 / 2.54)))
-        ext.set(qn('cy'), str(int(10 * 914400 / 2.54)))
-        xfrm.append(ext)
-        spPr.append(xfrm)
-        pic.append(spPr)
-        
-        graphicData.append(pic)
-        graphic.append(graphicData)
-        Drawing.append(inline)
-        inline.append(graphic)
-        
-        new_r.append(Drawing)
-        print(f'Found: {section_title} at pos {pos}')
-    else:
-        print(f'FILE NOT FOUND: {img_path}')
-        continue
-    
-    new_p.append(new_r)
-    parent.insert(pos + 1, new_p)
-    
-    # Add caption paragraph
-    cap_p = OxmlElement('w:p')
-    cap_pPr = OxmlElement('w:pPr')
-    cap_jc = OxmlElement('w:jc')
-    cap_jc.set(qn('w:val'), 'center')
-    cap_pPr.append(cap_jc)
-    cap_p.append(cap_pPr)
-    
-    cap_r = OxmlElement('w:r')
-    cap_rPr = OxmlElement('w:rPr')
-    cap_i = OxmlElement('w:i')
-    cap_rPr.append(cap_i)
-    cap_fs = OxmlElement('w:sz')
-    cap_fs.set(qn('w:val'), '20')  # 10pt
-    cap_rPr.append(cap_fs)
-    cap_r.append(cap_rPr)
-    cap_t = OxmlElement('w:t')
-    cap_t.text = caption
-    cap_r.append(cap_t)
-    cap_p.append(cap_r)
-    parent.insert(pos + 2, cap_p)
+    if not matched:
+        print(f"  ⚠️ [{para_idx}] No match for: {old_text[:50]}")
 
-doc.save(r'C:\Users\SMANSA\mimotes\docs\pkl-report\LAPORAN_PKL_Eko_Saputro_23215050.docx')
-print('Saved with diagrams')
+print(f"\n  Replaced {replaced}/{len(figure_positions)} captions")
+
+# ===== SAVE =====
+print(f"\n💾 Saving...")
+doc.save(OUTPUT)
+print(f"✅ Saved: {OUTPUT}")
+
+# ===== Now insert images using python-docx =====
+print("\n🖼️ Step 3: Inserting images...")
+
+doc2 = Document(OUTPUT)
+
+# Find figure captions again and insert images before them
+for i, para in enumerate(doc2.paragraphs):
+    text = para.text.strip()
+    if not text.startswith('Gambar 4.'):
+        continue
+    
+    # Find matching image
+    img_file = None
+    for search_text, new_caption, img_f in DIAGRAM_MAP:
+        if search_text.lower() in text.lower() and img_f:
+            img_file = img_f
+            break
+    
+    if not img_file:
+        continue
+    
+    img_path = os.path.join(DIAGRAMS_DIR, img_file)
+    if not os.path.exists(img_path):
+        print(f"  ⚠️ Image not found: {img_path}")
+        continue
+    
+    try:
+        # Insert image before this paragraph
+        # We use add_run on a previous paragraph, or add a new paragraph
+        # The cleanest way is to insert a new paragraph before this one
+        
+        # Get the paragraph's XML element
+        para_elem = para._element
+        parent = para_elem.getparent()
+        pos = list(parent).index(para_elem)
+        
+        # Create new paragraph with image
+        new_para = doc2.add_paragraph()
+        new_para.alignment = 1  # CENTER
+        run = new_para.add_run()
+        run.add_picture(img_path, width=Inches(5.5))
+        
+        # Move the new paragraph to before the caption
+        new_para_elem = new_para._element
+        parent.remove(new_para_elem)
+        parent.insert(pos, new_para_elem)
+        
+        print(f"  ✅ Inserted {img_file} before '{text[:40]}'")
+    except Exception as e:
+        print(f"  ❌ Failed to insert {img_file}: {e}")
+
+doc2.save(OUTPUT)
+print(f"\n💾 Final save: {OUTPUT}")
+
+# ===== VERIFY =====
+doc3 = Document(OUTPUT)
+img_count = 0
+for para in doc3.paragraphs:
+    for run in para.runs:
+        if run._element.findall(qn('w:drawing')):
+            img_count += 1
+
+print(f"\n📊 Verification:")
+print(f"  Images inserted: {img_count}")
+print(f"  File size: {os.path.getsize(OUTPUT)/1024:.0f} KB")

@@ -1,25 +1,20 @@
-import DashboardShell from "@/components/layout/dashboard-shell";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe } from "lucide-react";
+import SettingsLayout from "@//components/settings/settings-layout";
+import LanguageSelector from "@//components/settings/language-selector";
 
-export default function LanguageSettingsPage() {
+export default function LanguagePage() {
   return (
-    <DashboardShell>
-      <div className="max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" />
-              Bahasa
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Pengaturan bahasa akan tersedia di sini.
-            </p>
-          </CardContent>
-        </Card>
+    <SettingsLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Bahasa / Language</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Pilih bahasa yang digunakan di seluruh aplikasi.
+          </p>
+        </div>
+        <div className="bg-card border rounded-lg p-6">
+          <LanguageSelector />
+        </div>
       </div>
-    </DashboardShell>
+    </SettingsLayout>
   );
 }

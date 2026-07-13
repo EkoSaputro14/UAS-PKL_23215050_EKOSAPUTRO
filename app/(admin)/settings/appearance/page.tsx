@@ -1,25 +1,18 @@
-import DashboardShell from "@/components/layout/dashboard-shell";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sun } from "lucide-react";
+import SettingsLayout from "@/components/settings/settings-layout";
+import AppearanceSettingsForm from "@/components/settings/appearance-settings-form";
 
 export default function AppearanceSettingsPage() {
   return (
-    <DashboardShell>
-      <div className="max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sun className="h-5 w-5" />
-              Tampilan
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Pengaturan tampilan akan tersedia di sini.
-            </p>
-          </CardContent>
-        </Card>
+    <SettingsLayout>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-background focus:ring-2 focus:ring-primary"
+      >
+        Lewati ke konten
+      </a>
+      <div id="main-content" tabIndex={-1}>
+        <AppearanceSettingsForm />
       </div>
-    </DashboardShell>
+    </SettingsLayout>
   );
 }

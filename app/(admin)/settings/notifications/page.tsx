@@ -1,25 +1,18 @@
-import DashboardShell from "@/components/layout/dashboard-shell";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bell } from "lucide-react";
+import SettingsLayout from "@/components/settings/settings-layout";
+import NotificationSettings from "@/components/settings/notification-settings";
 
 export default function NotificationsSettingsPage() {
   return (
-    <DashboardShell>
-      <div className="max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notifikasi
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Pengaturan notifikasi akan tersedia di sini.
-            </p>
-          </CardContent>
-        </Card>
+    <SettingsLayout>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-background focus:ring-2 focus:ring-primary"
+      >
+        Lewati ke konten
+      </a>
+      <div id="main-content" tabIndex={-1}>
+        <NotificationSettings />
       </div>
-    </DashboardShell>
+    </SettingsLayout>
   );
 }
