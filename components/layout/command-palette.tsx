@@ -187,18 +187,6 @@ export default function CommandPalette({
             <Key className="size-4" />
             API Keys
           </CommandItem>
-          <CommandItem onSelect={() => navigate("/settings")}>
-            <Settings className="size-4" />
-            AI Settings
-          </CommandItem>
-          <CommandItem onSelect={() => navigate("/settings/widget")}>
-            <Puzzle className="size-4" />
-            Widget Config
-          </CommandItem>
-          <CommandItem onSelect={() => navigate("/settings/mcp")}>
-            <Zap className="size-4" />
-            MCP Settings
-          </CommandItem>
           <CommandItem onSelect={() => navigate("/developers")}>
             <Zap className="size-4" />
             API / Developers
