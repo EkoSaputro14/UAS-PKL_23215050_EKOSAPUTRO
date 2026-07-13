@@ -30,6 +30,7 @@ model User {
   chatSessions     ChatSession[]
   analyticsEvents  AnalyticsEvent[]
   promptTemplates  PromptTemplate[]  @relation("PromptCreator")
+  widgets          Widget[]
 
   @@map("users")
 }
@@ -248,4 +249,72 @@ model WhatsAppMessage {
   @@index([conversationId, createdAt])
   @@index([metaMessageId])
   @@map("whatsapp_messages")
+}
+
+// ============================================================
+// WIDGET (Embeddable Chat Widget)
+// ============================================================
+
+model Widget {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  name            String   @db.VarChar(100)
+  slug            String   @unique @db.VarChar(100)
+  publicKey       String   @unique @map("public_key") @db.VarChar(64)
+  secretKey       String   @unique @map("secret_key") @db.VarChar(64)
+  isActive        Boolean  @default(true) @map("is_active")
+
+  // Theme customization
+  primaryColor    String   @default("#3B82F6") @map("primary_color") @db.VarChar(7)
+  backgroundColor String   @default("#FFFFFF") @map("background_color") @db.VarChar(7)
+  textColor       String   @default("#1F2937") @map("text_color") @db.VarChar(7)
+  welcomeMessage  String   @default("Hi! How can I help you?") @map("welcome_message") @db.VarChar(500)
+  position        String   @default("bottom-right") @map("position") @db.VarChar(20)
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversations WidgetConversation[]
+
+  @@index([userId])
+  @@index([slug])
+  @@index([publicKey])
+  @@map("widgets")
+}
+
+model WidgetConversation {
+  id          String   @id @default(uuid())
+  widgetId    String   @map("widget_id")
+  visitorId   String?  @map("visitor_id") @db.VarChar(100)
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  status      String   @default("active") @db.VarChar(20)
+  startedAt   DateTime @default(now()) @map("started_at")
+  endedAt     DateTime? @map("ended_at")
+  leadName     String?  @map("lead_name") @db.VarChar(200)
+  leadEmail    String?  @map("lead_email") @db.VarChar(300)
+  leadWhatsApp String?  @map("lead_whatsapp") @db.VarChar(30)
+  leadScore  String? @default("low") @map("lead_score") @db.VarChar(20)
+  leadStatus String? @default("new") @map("lead_status") @db.VarChar(20)
+
+  widget    Widget           @relation(fields: [widgetId], references: [id], onDelete: Cascade)
+  messages  WidgetMessage[]
+
+  @@index([widgetId])
+  @@index([startedAt])
+  @@map("widget_conversations")
+}
+
+model WidgetMessage {
+  id             String   @id @default(uuid())
+  conversationId String   @map("conversation_id")
+  role           String   @db.VarChar(20)
+  content        String
+  tokensUsed     Int      @default(0) @map("tokens_used")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  conversation WidgetConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@map("widget_messages")
 }
