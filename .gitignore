@@ -52,3 +52,4 @@ baileys-service/node_modules/
 docs-obsidian/
 .worktrees/
 cookies.txt
+cookies*.txt
