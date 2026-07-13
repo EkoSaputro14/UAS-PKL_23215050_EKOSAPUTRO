@@ -57,14 +57,14 @@ export async function POST(request: NextRequest) {
 
     // Generate RAG response
     const promptContext: PromptContext = {
-      mode: "knowledge_base",
+      mode: "customer_service",
       businessName: widget.name,
       businessDescription: "",
       contactInfo: {},
       knowledgeContext: "",
     };
 
-    const ragResult = await generateRAGResponse(message, 5, 0.30, 4000, promptContext);
+    const ragResult = await generateRAGResponse(message, 5, undefined, 4000, promptContext);
     const response = ragResult.answer || "Maaf, saya tidak dapat menjawab pertanyaan Anda saat ini.";
 
     // Save assistant message

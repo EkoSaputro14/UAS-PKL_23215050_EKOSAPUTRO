@@ -1,6 +1,44 @@
 import { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+
+/**
+ * POST /api/widget/leads
+ * Save lead data from widget lead capture form.
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { publicKey, sessionId, name, email, phone } = body;
+
+    if (!publicKey || !sessionId) {
+      return Response.json({ error: "publicKey and sessionId required" }, { status: 400 });
+    }
+
+    // Find widget
+    const widget = await prisma.widget.findUnique({
+      where: { publicKey },
+    });
+
+    if (!widget) {
+      return Response.json({ error: "Widget not found" }, { status: 404 });
+    }
+
+    // Update conversation with lead data
+    const conversation = await prisma.widgetConversation.update({
+      where: { id: sessionId },
+      data: {
+        leadName: name || null,
+        leadEmail: email || null,
+        leadWhatsApp: phone || null,
+      },
+    });
+
+    return Response.json({ success: true, conversationId: conversation.id });
+  } catch (error) {
+    console.error("[Widget Leads] Save error:", error);
+    return Response.json({ error: "Failed to save lead" }, { status: 500 });
+  }
+}
 
 /**
  * GET /api/widget/leads
@@ -8,11 +46,6 @@ import { prisma } from "@/lib/prisma";
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const widgetId = searchParams.get("widgetId");
     const page = parseInt(searchParams.get("page") || "1");

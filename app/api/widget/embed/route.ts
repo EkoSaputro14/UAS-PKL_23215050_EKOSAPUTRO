@@ -118,12 +118,21 @@ export async function GET() {
           '</div>' +
           '<button id="mimotes-close">✕</button>' +
         '</div>' +
-        '<div id="mimotes-messages">' +
+        '<div id="mimotes-lead-form" style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">' +
+          '<p style="font-size: 14px; font-weight: 600; color: ' + text + ';">Mulai Chat</p>' +
+          '<p style="font-size: 12px; color: #6b7280;">Isi data berikut untuk memulai percakapan</p>' +
+          '<input id="mimotes-lead-name" placeholder="Nama lengkap" style="padding: 10px 12px; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; font-size: 13px; font-family: inherit; outline: none;" />' +
+          '<input id="mimotes-lead-email" placeholder="Email" type="email" style="padding: 10px 12px; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; font-size: 13px; font-family: inherit; outline: none;" />' +
+          '<input id="mimotes-lead-phone" placeholder="No. WhatsApp" style="padding: 10px 12px; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; font-size: 13px; font-family: inherit; outline: none;" />' +
+          '<button id="mimotes-lead-submit" style="padding: 10px; background: ' + primary + '; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;">Mulai Chat</button>' +
+          '<button id="mimotes-lead-skip" style="padding: 8px; background: none; border: none; color: #6b7280; font-size: 12px; cursor: pointer; font-family: inherit;">Lewati, chat langsung</button>' +
+        '</div>' +
+        '<div id="mimotes-messages" style="display: none;">' +
           '<div class="bot" id="mimotes-msg-0">' + escapeHtml(welcome) + '</div>' +
         '</div>' +
         quickRepliesHtml +
         '<div id="mimotes-typing"><span></span><span></span><span></span></div>' +
-        '<div id="mimotes-input-area">' +
+        '<div id="mimotes-input-area" style="display: none;">' +
           '<input id="mimotes-input" placeholder="Ketik pesan..." autocomplete="off" />' +
           '<button id="mimotes-send" disabled><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>' +
         '</div>' +
@@ -139,9 +148,55 @@ export async function GET() {
     var typingEl = document.getElementById('mimotes-typing');
     var closeBtn = document.getElementById('mimotes-close');
     var quickRepliesEl = document.getElementById('mimotes-quick-replies');
+    var leadFormEl = document.getElementById('mimotes-lead-form');
+    var inputAreaEl = document.getElementById('mimotes-input-area');
+    var leadSubmitBtn = document.getElementById('mimotes-lead-submit');
+    var leadSkipBtn = document.getElementById('mimotes-lead-skip');
     var msgCount = 1;
 
     closeBtn.onclick = toggleChat;
+
+    // Lead form handlers
+    function showChat() {
+      leadFormEl.style.display = 'none';
+      messagesEl.style.display = 'flex';
+      inputAreaEl.style.display = 'flex';
+      inputEl.focus();
+    }
+
+    leadSubmitBtn.onclick = function() {
+      var name = document.getElementById('mimotes-lead-name').value.trim();
+      var email = document.getElementById('mimotes-lead-email').value.trim();
+      var phone = document.getElementById('mimotes-lead-phone').value.trim();
+
+      // Save lead data
+      var leadKey = 'mimotes_lead_' + widgetId;
+      localStorage.setItem(leadKey, JSON.stringify({ name: name, email: email, phone: phone }));
+
+      // Send lead data to server
+      fetch(baseUrl + '/api/widget/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          publicKey: widgetId,
+          sessionId: getSessionId(),
+          name: name,
+          email: email,
+          phone: phone
+        })
+      }).catch(function() {});
+
+      showChat();
+    };
+
+    leadSkipBtn.onclick = showChat;
+
+    // Check if lead already captured
+    var leadKey = 'mimotes_lead_' + widgetId;
+    var existingLead = localStorage.getItem(leadKey);
+    if (existingLead) {
+      showChat();
+    }
 
     inputEl.oninput = function() {
       sendBtn.disabled = !inputEl.value.trim();
