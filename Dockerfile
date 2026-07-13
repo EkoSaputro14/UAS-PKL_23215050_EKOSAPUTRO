@@ -97,6 +97,11 @@ COPY --from=deps /app/node_modules/bcryptjs ./node_modules/bcryptjs
 # Copy prisma CLI for runtime prisma generate (needed for DATABASE_URL regeneration)
 COPY --from=deps /app/node_modules/prisma ./node_modules/prisma
 
+# Copy effect module and its dependencies (for @prisma/config)
+COPY --from=deps /app/node_modules/effect ./node_modules/effect
+COPY --from=deps /app/node_modules/fast-check ./node_modules/fast-check
+COPY --from=deps /app/node_modules/@standard-schema ./node_modules/@standard-schema
+
 # Copy prisma schema for runtime generate
 COPY prisma ./prisma
 

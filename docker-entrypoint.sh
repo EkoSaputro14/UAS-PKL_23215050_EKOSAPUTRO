@@ -3,15 +3,18 @@ set -e
 
 echo "🤖 Mimotes - Starting..."
 
-# Regenerate Prisma Client with runtime DATABASE_URL
-# (build-time URL may differ from runtime URL in Docker)
-echo "🔄 Regenerating Prisma Client..."
-if [ -f "./node_modules/prisma/build/index.js" ]; then
-  node ./node_modules/prisma/build/index.js generate 2>&1 || echo "⚠️  Prisma generate failed, using build-time client"
-elif [ -f "./node_modules/.bin/prisma" ]; then
-  ./node_modules/.bin/prisma generate 2>&1 || echo "⚠️  Prisma generate failed, using build-time client"
+# Skip Prisma generate in production — use build-time client
+# The build-time client is already generated and works with the current schema
+# Only regenerate if explicitly needed (e.g., DATABASE_URL changed)
+if [ "$REGENERATE_PRISMA" = "true" ]; then
+  echo "🔄 Regenerating Prisma Client..."
+  if [ -f "./node_modules/prisma/build/index.js" ]; then
+    node ./node_modules/prisma/build/index.js generate 2>&1 || echo "⚠️  Prisma generate failed, using build-time client"
+  else
+    echo "⚠️  Prisma CLI not found, using build-time client"
+  fi
 else
-  echo "⚠️  Prisma CLI not found, using build-time client"
+  echo "📦 Using build-time Prisma Client (set REGENERATE_PRISMA=true to regenerate)"
 fi
 
 # Seed admin user if SEED_ADMIN is set
