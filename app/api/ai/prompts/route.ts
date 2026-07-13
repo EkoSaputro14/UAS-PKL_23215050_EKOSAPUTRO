@@ -28,9 +28,6 @@ export async function GET(request: NextRequest) {
     const prompts = await prisma.promptTemplate.findMany({
       where,
       orderBy: { updatedAt: "desc" },
-      include: {
-        _count: { select: { versions: true } },
-      },
     });
 
     return Response.json(prompts);
@@ -69,17 +66,6 @@ export async function POST(request: NextRequest) {
         category,
         createdBy: userId,
         version: 1,
-        versions: {
-          create: {
-            version: 1,
-            content,
-            changeNote: "Initial version",
-            createdBy: userId,
-          },
-        },
-      },
-      include: {
-        _count: { select: { versions: true } },
       },
     });
 

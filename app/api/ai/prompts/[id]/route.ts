@@ -17,12 +17,6 @@ export async function GET(
 
     const prompt = await prisma.promptTemplate.findUnique({
       where: { id },
-      include: {
-        versions: {
-          orderBy: { version: "desc" },
-        },
-        _count: { select: { versions: true } },
-      },
     });
 
     if (!prompt) {
@@ -78,31 +72,10 @@ export async function PUT(
         },
       });
 
-      // Only create a new version if content changed
-      if (content && content !== current.content) {
-        await tx.promptVersion.create({
-          data: {
-            promptId: id,
-            version: newVersion,
-            content,
-            changeNote: changeNote || `Version ${newVersion}`,
-            createdBy: userId,
-          },
-        });
-      }
-
       return prompt;
     });
 
-    const result = await prisma.promptTemplate.findUnique({
-      where: { id: updated.id },
-      include: {
-        versions: { orderBy: { version: "desc" } },
-        _count: { select: { versions: true } },
-      },
-    });
-
-    return Response.json(result);
+    return Response.json(updated);
   } catch (error) {
     console.error("PUT /api/ai/prompts/[id] error:", error);
     return Response.json(

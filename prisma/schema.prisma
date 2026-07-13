@@ -30,7 +30,6 @@ model User {
   chatSessions     ChatSession[]
   analyticsEvents  AnalyticsEvent[]
   promptTemplates  PromptTemplate[]  @relation("PromptCreator")
-  promptVersions   PromptVersion[]   @relation("VersionCreator")
 
   @@map("users")
 }
@@ -176,26 +175,10 @@ model PromptTemplate {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   creator  User?           @relation("PromptCreator", fields: [createdBy], references: [id])
-  versions PromptVersion[]
 
   @@map("prompt_templates")
 }
 
-model PromptVersion {
-  id         String   @id @default(uuid())
-  promptId   String   @map("prompt_id")
-  version    Int
-  content    String
-  changeNote String?  @map("change_note")
-  createdBy  String?  @map("created_by")
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  prompt  PromptTemplate @relation(fields: [promptId], references: [id], onDelete: Cascade)
-  creator User?          @relation("VersionCreator", fields: [createdBy], references: [id])
-
-  @@unique([promptId, version])
-  @@map("prompt_versions")
-}
 
 // ============================================================
 // WHATSAPP (placeholder — integration method TBD)
