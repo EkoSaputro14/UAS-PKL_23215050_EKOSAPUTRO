@@ -30,6 +30,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "settings.notifications": "Notifikasi",
     "settings.appearance": "Tampilan",
     "settings.whatsapp": "WhatsApp",
+    "settings.widget": "Widget",
     "settings.language": "Bahasa",
     
     // Common
@@ -96,6 +97,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "settings.notifications": "Notifications",
     "settings.appearance": "Appearance",
     "settings.whatsapp": "WhatsApp",
+    "settings.widget": "Widget",
     "settings.language": "Language",
     
     // Common

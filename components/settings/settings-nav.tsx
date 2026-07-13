@@ -71,6 +71,12 @@ const NAV_ITEMS: NavItem[] = [
     icon: <MessageCircle className="h-4 w-4" />,
   },
   {
+    labelKey: "settings.widget",
+    fallback: "Widget",
+    href: "/settings/widget",
+    icon: <Puzzle className="h-4 w-4" />,
+  },
+  {
     labelKey: "settings.language",
     fallback: "Bahasa",
     href: "/settings/language",
