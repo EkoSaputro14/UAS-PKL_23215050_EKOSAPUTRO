@@ -11,8 +11,8 @@ interface WidgetPreviewProps {
     textColor: string;
     welcomeMessage: string;
     position: string;
-    quickReplies: string[];
-    leadCaptureEnabled: boolean;
+    quickReplies?: string[];
+    leadCaptureEnabled?: boolean;
   };
 }
 
@@ -135,9 +135,9 @@ export default function WidgetPreview({ widget }: WidgetPreviewProps) {
             </div>
 
             {/* Quick Replies */}
-            {messages.length <= 1 && widget.quickReplies.length > 0 && (
+            {messages.length <= 1 && (widget.quickReplies || []).length > 0 && (
               <div className="px-3 pb-2 flex flex-wrap gap-1.5">
-                {widget.quickReplies.map((reply, i) => (
+                {(widget.quickReplies || []).map((reply, i) => (
                   <button
                     key={i}
                     onClick={() => {

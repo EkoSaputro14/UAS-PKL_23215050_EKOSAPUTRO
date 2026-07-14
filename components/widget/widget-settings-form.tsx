@@ -13,26 +13,25 @@ interface WidgetData {
   slug: string;
   publicKey: string;
   secretKey: string;
-  allowedDomains: string[];
+  allowedDomains?: string[];
   isActive: boolean;
   primaryColor: string;
   backgroundColor: string;
   textColor: string;
-  logoUrl: string | null;
-  avatarUrl: string | null;
+  logoUrl?: string | null;
+  avatarUrl?: string | null;
   welcomeMessage: string;
   position: string;
-  quickReplies: string[];
-  leadCaptureEnabled: boolean;
-  leadFields: Array<{ name: string; label: string; type: string; required: boolean }>;
+  quickReplies?: string[];
+  leadCaptureEnabled?: boolean;
+  leadFields?: Array<{ name: string; label: string; type: string; required: boolean }>;
   _count?: { conversations: number };
   // Business profile
   mode?: string;
-  businessName?: string | null;
-  businessDescription?: string | null;
-  businessWhatsApp?: string | null;
-  businessPhone?: string | null;
-  businessEmail?: string | null;
+  businessName?: string;
+  businessDescription?: string;
+  businessWhatsApp?: string;
+  businessEmail?: string;
   businessAddress?: string | null;
 }
 
@@ -107,7 +106,6 @@ export default function WidgetSettingsForm() {
     setBusinessName(w.businessName || "");
     setBusinessDescription(w.businessDescription || "");
     setBusinessWhatsApp(w.businessWhatsApp || "");
-    setBusinessPhone(w.businessPhone || "");
     setBusinessEmail(w.businessEmail || "");
     setBusinessAddress(w.businessAddress || "");
     // Fetch lead count
@@ -209,7 +207,7 @@ export default function WidgetSettingsForm() {
     if (!newQuickReply.trim() || !selectedWidget) return;
     setSelectedWidget({
       ...selectedWidget,
-      quickReplies: [...selectedWidget.quickReplies, newQuickReply.trim()],
+      quickReplies: [...(selectedWidget.quickReplies || []), newQuickReply.trim()],
     });
     setNewQuickReply("");
   }
@@ -219,7 +217,7 @@ export default function WidgetSettingsForm() {
     if (!selectedWidget) return;
     setSelectedWidget({
       ...selectedWidget,
-      quickReplies: selectedWidget.quickReplies.filter((_, i) => i !== index),
+      quickReplies: (selectedWidget.quickReplies || []).filter((_, i) => i !== index),
     });
   }
 
@@ -512,7 +510,7 @@ export default function WidgetSettingsForm() {
             <div className="rounded-lg border bg-card p-4 space-y-4">
               <h3 className="text-sm font-semibold">Quick Replies</h3>
               <div className="flex flex-wrap gap-2">
-                {selectedWidget.quickReplies.map((reply, i) => (
+                {(selectedWidget.quickReplies || []).map((reply, i) => (
                   <span
                     key={i}
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-sm"
